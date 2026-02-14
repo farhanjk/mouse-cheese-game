@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouse to Cheese Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .game-container {
+            text-align: center;
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .instructions {
+            color: #ecf0f1;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        #gameCanvas {
+            border: 4px solid #fff;
+            border-radius: 10px;
+            background: #1a1a2e;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+            color: #fff;
+            font-size: 18px;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-size: 24px;
+            color: #2ecc71;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        #restartBtn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        #restartBtn:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Guide the Mouse to the Cheese!</h1>
+        <p class="instructions">Use Arrow Keys or WASD to move</p>
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        <div class="stats">
+            <span>Level: <span id="level">1</span></span>
+            <span>Score: <span id="score">0</span></span>
+            <span>Time: <span id="time">0</span>s</span>
+        </div>
+        <div id="message"></div>
+        <button id="restartBtn">Restart Game</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const messageEl = document.getElementById('message');
+        const levelEl = document.getElementById('level');
+        const scoreEl = document.getElementById('score');
+        const timeEl = document.getElementById('time');
+        const restartBtn = document.getElementById('restartBtn');
+
+        let mouse = { x: 50, y: 200, size: 30, speed: 5 };
+        let cheese = { x: 500, y: 200, size: 35 };
+        let obstacles = [];
+        let level = 1;
+        let score = 0;
+        let startTime = Date.now();
+        let gameWon = false;
+        let keys = {};
+        let hitFlash = 0;
+        let isHit = false;
+        let confetti = [];
+        let celebrationActive = false;
+
+        function drawMouse(x, y, size) {
+            // Body
+            ctx.fillStyle = '#808080';
+            ctx.beginPath();
+            ctx.ellipse(x, y, size * 0.6, size * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head
+            ctx.beginPath();
+            ctx.arc(x + size * 0.4, y, size * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ears
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.5, y - size * 0.35, size * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + size * 0.3, y - size * 0.4, size * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.55, y - size * 0.1, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nose
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.7, y + size * 0.05, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tail
+            ctx.strokeStyle = '#808080';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - size * 0.5, y);
+            ctx.quadraticCurveTo(x - size * 0.8, y - size * 0.3, x - size * 0.9, y + size * 0.2);
+            ctx.stroke();
+
+            // Whiskers
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            for (let i = -1; i <= 1; i++) {
+                ctx.beginPath();
+                ctx.moveTo(x + size * 0.6, y + size * 0.05);
+                ctx.lineTo(x + size * 0.9, y + i * size * 0.15);
+                ctx.stroke();
+            }
+        }
+
+        function drawCheese(x, y, size) {
+            // Main cheese body
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(x - size * 0.5, y + size * 0.3);
+            ctx.lineTo(x, y - size * 0.4);
+            ctx.lineTo(x + size * 0.5, y + size * 0.3);
+            ctx.closePath();
+            ctx.fill();
+
+            // Darker side
+            ctx.fillStyle = '#FFA500';
+            ctx.beginPath();
+            ctx.moveTo(x + size * 0.5, y + size * 0.3);
+            ctx.lineTo(x, y - size * 0.4);
+            ctx.lineTo(x + size * 0.2, y - size * 0.3);
+            ctx.lineTo(x + size * 0.5, y + size * 0.1);
+            ctx.closePath();
+            ctx.fill();
+
+            // Holes
+            ctx.fillStyle = '#DAA520';
+            ctx.beginPath();
+            ctx.arc(x - size * 0.15, y, size * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + size * 0.1, y + size * 0.15, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x - size * 0.05, y - size * 0.15, size * 0.06, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        let zapperPhase = 0;
+
+        function drawObstacle(obs) {
+            const x = obs.x;
+            const y = obs.y;
+            const w = obs.width;
+            const h = obs.height;
+            const cx = x + w / 2;
+            const cy = y + h / 2;
+
+            // Outer glow
+            const glowIntensity = 0.3 + Math.sin(zapperPhase + obs.x) * 0.2;
+            ctx.shadowColor = '#00FFFF';
+            ctx.shadowBlur = 15;
+
+            // Metal frame
+            ctx.fillStyle = '#333';
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            // Inner electric area
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 4);
+            ctx.fill();
+
+            // Electric grid lines (vertical)
+            ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + glowIntensity})`;
+            ctx.lineWidth = 2;
+            for (let i = 0.25; i < 1; i += 0.25) {
+                ctx.beginPath();
+                ctx.moveTo(x + w * i, y + 6);
+                ctx.lineTo(x + w * i, y + h - 6);
+                ctx.stroke();
+            }
+
+            // Electric grid lines (horizontal)
+            for (let i = 0.25; i < 1; i += 0.25) {
+                ctx.beginPath();
+                ctx.moveTo(x + 6, y + h * i);
+                ctx.lineTo(x + w - 6, y + h * i);
+                ctx.stroke();
+            }
+
+            // Spark effects
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 2;
+            const numSparks = 3;
+            for (let i = 0; i < numSparks; i++) {
+                const sparkX = x + 10 + Math.sin(zapperPhase * 3 + i * 2 + obs.y) * (w - 20) / 2 + (w - 20) / 2;
+                const sparkY = y + 10 + Math.cos(zapperPhase * 2 + i * 3 + obs.x) * (h - 20) / 2 + (h - 20) / 2;
+
+                ctx.beginPath();
+                ctx.moveTo(sparkX - 4, sparkY);
+                ctx.lineTo(sparkX + 4, sparkY);
+                ctx.moveTo(sparkX, sparkY - 4);
+                ctx.lineTo(sparkX, sparkY + 4);
+                ctx.stroke();
+            }
+
+            // Corner bolts
+            ctx.fillStyle = '#666';
+            const boltSize = 4;
+            ctx.beginPath();
+            ctx.arc(x + 6, y + 6, boltSize, 0, Math.PI * 2);
+            ctx.arc(x + w - 6, y + 6, boltSize, 0, Math.PI * 2);
+            ctx.arc(x + 6, y + h - 6, boltSize, 0, Math.PI * 2);
+            ctx.arc(x + w - 6, y + h - 6, boltSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Danger symbol (lightning bolt)
+            ctx.fillStyle = `rgba(255, 255, 0, ${0.7 + glowIntensity})`;
+            ctx.beginPath();
+            ctx.moveTo(cx + 2, cy - h * 0.25);
+            ctx.lineTo(cx - 5, cy + 2);
+            ctx.lineTo(cx, cy);
+            ctx.lineTo(cx - 2, cy + h * 0.25);
+            ctx.lineTo(cx + 5, cy - 2);
+            ctx.lineTo(cx, cy);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function checkObstacleOverlap(obs1, obs2, minGap) {
+            return obs1.x - minGap < obs2.x + obs2.width &&
+                   obs1.x + obs1.width + minGap > obs2.x &&
+                   obs1.y - minGap < obs2.y + obs2.height &&
+                   obs1.y + obs1.height + minGap > obs2.y;
+        }
+
+        function generateObstacles() {
+            obstacles = [];
+            const numObstacles = Math.min(level + 1, 8);
+            const minGap = 80;
+
+            for (let i = 0; i < numObstacles; i++) {
+                let obs;
+                let attempts = 0;
+                let valid = false;
+
+                do {
+                    obs = {
+                        x: 120 + Math.random() * (canvas.width - 280),
+                        y: Math.random() * (canvas.height - 80),
+                        width: 40 + Math.random() * 30,
+                        height: 40 + Math.random() * 30,
+                        vy: (0.5 + Math.random() * 1) * (Math.random() < 0.5 ? 1 : -1)
+                    };
+
+                    valid = !checkCollision(mouse, obs) && !checkCheeseCollision(obs);
+
+                    // Check distance from other obstacles
+                    for (const existing of obstacles) {
+                        if (checkObstacleOverlap(obs, existing, minGap)) {
+                            valid = false;
+                            break;
+                        }
+                    }
+
+                    attempts++;
+                } while (attempts < 100 && !valid);
+
+                if (valid) obstacles.push(obs);
+            }
+        }
+
+        function updateObstacles() {
+            for (const obs of obstacles) {
+                obs.y += obs.vy;
+
+                // Bounce off top and bottom edges
+                if (obs.y <= 0) {
+                    obs.y = 0;
+                    obs.vy = Math.abs(obs.vy);
+                } else if (obs.y + obs.height >= canvas.height) {
+                    obs.y = canvas.height - obs.height;
+                    obs.vy = -Math.abs(obs.vy);
+                }
+
+                // Check if obstacle hits mouse
+                if (!isHit && checkCollision(mouse, obs)) {
+                    triggerHit();
+                }
+            }
+        }
+
+        function triggerHit() {
+            isHit = true;
+            hitFlash = 1;
+            messageEl.textContent = 'Ouch! Restarting level...';
+            messageEl.style.color = '#e74c3c';
+
+            setTimeout(() => {
+                restartLevel();
+            }, 1000);
+        }
+
+        function restartLevel() {
+            mouse.x = 50;
+            mouse.y = 200;
+            generateObstacles();
+            isHit = false;
+            hitFlash = 0;
+            messageEl.textContent = '';
+        }
+
+        function checkCollision(m, obs) {
+            return m.x + m.size * 0.6 > obs.x &&
+                   m.x - m.size * 0.6 < obs.x + obs.width &&
+                   m.y + m.size * 0.4 > obs.y &&
+                   m.y - m.size * 0.4 < obs.y + obs.height;
+        }
+
+        function checkCheeseCollision(obs) {
+            return cheese.x + cheese.size * 0.5 > obs.x &&
+                   cheese.x - cheese.size * 0.5 < obs.x + obs.width &&
+                   cheese.y + cheese.size * 0.4 > obs.y &&
+                   cheese.y - cheese.size * 0.4 < obs.y + obs.height;
+        }
+
+        function checkWin() {
+            const dx = mouse.x - cheese.x;
+            const dy = mouse.y - cheese.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < (mouse.size + cheese.size) * 0.4;
+        }
+
+        function spawnConfetti() {
+            confetti = [];
+            const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+            for (let i = 0; i < 100; i++) {
+                confetti.push({
+                    x: Math.random() * canvas.width,
+                    y: -20 - Math.random() * 200,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: 2 + Math.random() * 3,
+                    size: 5 + Math.random() * 8,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: (Math.random() - 0.5) * 0.2,
+                    shape: Math.random() > 0.5 ? 'rect' : 'circle'
+                });
+            }
+            celebrationActive = true;
+        }
+
+        function updateConfetti() {
+            for (const c of confetti) {
+                c.x += c.vx;
+                c.y += c.vy;
+                c.rotation += c.rotationSpeed;
+                c.vy += 0.05; // gravity
+                c.vx *= 0.99; // air resistance
+            }
+            // Remove confetti that fell off screen
+            confetti = confetti.filter(c => c.y < canvas.height + 50);
+            if (confetti.length === 0) {
+                celebrationActive = false;
+            }
+        }
+
+        function drawConfetti() {
+            for (const c of confetti) {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.rotate(c.rotation);
+                ctx.fillStyle = c.color;
+
+                if (c.shape === 'rect') {
+                    ctx.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, c.size / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        function nextLevel() {
+            level++;
+            levelEl.textContent = level;
+            score += 100 + level * 10;
+            scoreEl.textContent = score;
+
+            mouse.x = 50;
+            mouse.y = 200;
+            cheese.x = 450 + Math.random() * 100;
+            cheese.y = 50 + Math.random() * 300;
+
+            generateObstacles();
+            gameWon = false;
+            celebrationActive = false;
+            confetti = [];
+            messageEl.textContent = '';
+        }
+
+        function resetGame() {
+            level = 1;
+            score = 0;
+            startTime = Date.now();
+            mouse = { x: 50, y: 200, size: 30, speed: 5 };
+            cheese = { x: 500, y: 200, size: 35 };
+            levelEl.textContent = level;
+            scoreEl.textContent = score;
+            messageEl.textContent = '';
+            gameWon = false;
+            isHit = false;
+            hitFlash = 0;
+            celebrationActive = false;
+            confetti = [];
+            generateObstacles();
+        }
+
+        function update() {
+            // Update zapper animation
+            zapperPhase += 0.1;
+
+            // Decay hit flash
+            if (hitFlash > 0) {
+                hitFlash -= 0.05;
+            }
+
+            // Update confetti
+            if (celebrationActive) {
+                updateConfetti();
+            }
+
+            if (!gameWon && !isHit) {
+                updateObstacles();
+            }
+
+            if (gameWon || isHit) return;
+
+            let newX = mouse.x;
+            let newY = mouse.y;
+
+            if (keys['ArrowUp'] || keys['KeyW']) newY -= mouse.speed;
+            if (keys['ArrowDown'] || keys['KeyS']) newY += mouse.speed;
+            if (keys['ArrowLeft'] || keys['KeyA']) newX -= mouse.speed;
+            if (keys['ArrowRight'] || keys['KeyD']) newX += mouse.speed;
+
+            // Boundary check
+            newX = Math.max(mouse.size, Math.min(canvas.width - mouse.size, newX));
+            newY = Math.max(mouse.size * 0.5, Math.min(canvas.height - mouse.size * 0.5, newY));
+
+            // Obstacle collision
+            let canMove = true;
+            const testMouse = { ...mouse, x: newX, y: newY };
+            for (const obs of obstacles) {
+                if (checkCollision(testMouse, obs)) {
+                    canMove = false;
+                    break;
+                }
+            }
+
+            if (canMove) {
+                mouse.x = newX;
+                mouse.y = newY;
+            }
+
+            if (checkWin()) {
+                gameWon = true;
+                messageEl.textContent = `Level ${level} Complete! Press SPACE for next level`;
+                messageEl.style.color = '#2ecc71';
+                spawnConfetti();
+            }
+
+            // Update time
+            timeEl.textContent = Math.floor((Date.now() - startTime) / 1000);
+        }
+
+        function draw() {
+            // Clear canvas with grid background
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            const gridSize = 40;
+            ctx.strokeStyle = '#16213e';
+            ctx.lineWidth = 1;
+
+            // Vertical lines
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            // Horizontal lines
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw obstacles
+            obstacles.forEach(drawObstacle);
+
+            // Draw cheese
+            drawCheese(cheese.x, cheese.y, cheese.size);
+
+            // Draw mouse
+            drawMouse(mouse.x, mouse.y, mouse.size);
+
+            // Draw hit flash overlay
+            if (hitFlash > 0) {
+                ctx.fillStyle = `rgba(255, 0, 0, ${hitFlash * 0.5})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw explosion effect around mouse
+                ctx.strokeStyle = `rgba(255, 255, 0, ${hitFlash})`;
+                ctx.lineWidth = 3;
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const innerRadius = 20 + (1 - hitFlash) * 30;
+                    const outerRadius = 40 + (1 - hitFlash) * 50;
+                    ctx.beginPath();
+                    ctx.moveTo(
+                        mouse.x + Math.cos(angle) * innerRadius,
+                        mouse.y + Math.sin(angle) * innerRadius
+                    );
+                    ctx.lineTo(
+                        mouse.x + Math.cos(angle) * outerRadius,
+                        mouse.y + Math.sin(angle) * outerRadius
+                    );
+                    ctx.stroke();
+                }
+            }
+
+            // Draw confetti celebration
+            if (celebrationActive) {
+                drawConfetti();
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && gameWon) {
+                nextLevel();
+            }
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        restartBtn.addEventListener('click', resetGame);
+
+        // Start game
+        generateObstacles();
+        gameLoop();
+    </script>
+</body>
+</html>
