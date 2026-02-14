@@ -76,6 +76,182 @@
             background: #c0392b;
             transform: scale(1.05);
         }
+
+        .about-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            max-width: 600px;
+        }
+
+        .about-section h2 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .creators {
+            color: #ecf0f1;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .about-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .about-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .about-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .tutorial-btn {
+            background: #3498db;
+            color: white;
+        }
+
+        .ai-btn {
+            background: #D97757;
+            color: white;
+        }
+
+        .claude-logo {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Dialog styles */
+        .dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .dialog-overlay.active {
+            display: flex;
+        }
+
+        .dialog {
+            background: #1a1a2e;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 450px;
+            width: 90%;
+            border: 2px solid #3498db;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: dialogPop 0.3s ease;
+        }
+
+        @keyframes dialogPop {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .dialog h2 {
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dialog-content {
+            color: #ecf0f1;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .dialog-content p {
+            margin-bottom: 12px;
+        }
+
+        .key {
+            display: inline-block;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 2px;
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            padding: 10px 30px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .close-btn:hover {
+            background: #2980b9;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #D97757;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .ai-note {
+            font-size: 12px;
+            color: #888;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
     </style>
 </head>
 <body>
@@ -90,6 +266,78 @@
         </div>
         <div id="message"></div>
         <button id="restartBtn">Restart Game</button>
+
+        <div class="about-section">
+            <h2>About This Game</h2>
+            <p class="creators">Created by <strong>Farhan Khan</strong> & <strong>Zoella Khan</strong></p>
+            <div class="about-buttons">
+                <button class="about-btn tutorial-btn" id="tutorialBtn">
+                    <span>?</span> How to Play
+                </button>
+                <button class="about-btn ai-btn" id="aiStatsBtn">
+                    <svg class="claude-logo" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H8.2l-.696-.463-.063-.395.063-.131h2.378l.158-.197.715-2.058.142-.13h1.672l.142.13.714 2.058.159.197h2.378l.063.131-.063.395-.696.463H13.57l-.08.129.08.229 4.72 2.647.048.35-.238.286-3.428-.878-.16.063-.238 1.334-.127.128H9.854l-.127-.128-.239-1.334-.159-.063-3.428.878-.238-.286.048-.35zm6.327-7.391l-.476 1.373h1.88l-.476-1.373-.159-.298h-.61l-.159.298z"/>
+                    </svg>
+                    Built with Claude
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Dialog -->
+    <div class="dialog-overlay" id="tutorialDialog">
+        <div class="dialog">
+            <h2><span>?</span> How to Play</h2>
+            <div class="dialog-content">
+                <p><strong>Goal:</strong> Guide your mouse to the cheese!</p>
+                <p><strong>Controls:</strong></p>
+                <p>
+                    <span class="key">Arrow Up</span> or <span class="key">W</span> - Move up<br>
+                    <span class="key">Arrow Down</span> or <span class="key">S</span> - Move down<br>
+                    <span class="key">Arrow Left</span> or <span class="key">A</span> - Move left<br>
+                    <span class="key">Arrow Right</span> or <span class="key">D</span> - Move right
+                </p>
+                <p><strong>Watch out!</strong> Avoid the electric zappers - they move up and down!</p>
+                <p>Press <span class="key">SPACE</span> after completing a level to continue.</p>
+            </div>
+            <button class="close-btn" id="closeTutorial">Got it!</button>
+        </div>
+    </div>
+
+    <!-- AI Stats Dialog -->
+    <div class="dialog-overlay" id="aiStatsDialog">
+        <div class="dialog">
+            <h2>
+                <svg class="claude-logo" viewBox="0 0 24 24" fill="#D97757" width="24" height="24">
+                    <path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H8.2l-.696-.463-.063-.395.063-.131h2.378l.158-.197.715-2.058.142-.13h1.672l.142.13.714 2.058.159.197h2.378l.063.131-.063.395-.696.463H13.57l-.08.129.08.229 4.72 2.647.048.35-.238.286-3.428-.878-.16.063-.238 1.334-.127.128H9.854l-.127-.128-.239-1.334-.159-.063-3.428.878-.238-.286.048-.35zm6.327-7.391l-.476 1.373h1.88l-.476-1.373-.159-.298h-.61l-.159.298z"/>
+                </svg>
+                Built with Claude AI
+            </h2>
+            <div class="dialog-content">
+                <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">10</div>
+                        <div class="stat-label">Prompts Exchanged</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">~25</div>
+                        <div class="stat-label">Minutes to Create</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">700+</div>
+                        <div class="stat-label">Lines of Code</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">4</div>
+                        <div class="stat-label">Obstacle Designs Tried</div>
+                    </div>
+                </div>
+                <p><strong>Features built:</strong> Mouse & cheese graphics, grid background, moving electric zappers, collision detection, level progression, score system, hit effects, confetti celebrations, and GitHub Pages deployment.</p>
+                <p class="ai-note">Made with Claude Code - AI pair programming in the terminal.</p>
+            </div>
+            <button class="close-btn" id="closeAiStats">Cool!</button>
+        </div>
     </div>
 
     <script>
@@ -625,6 +873,51 @@
         });
 
         restartBtn.addEventListener('click', resetGame);
+
+        // Dialog handling
+        const tutorialDialog = document.getElementById('tutorialDialog');
+        const aiStatsDialog = document.getElementById('aiStatsDialog');
+        const tutorialBtn = document.getElementById('tutorialBtn');
+        const aiStatsBtn = document.getElementById('aiStatsBtn');
+        const closeTutorial = document.getElementById('closeTutorial');
+        const closeAiStats = document.getElementById('closeAiStats');
+
+        tutorialBtn.addEventListener('click', () => {
+            tutorialDialog.classList.add('active');
+        });
+
+        aiStatsBtn.addEventListener('click', () => {
+            aiStatsDialog.classList.add('active');
+        });
+
+        closeTutorial.addEventListener('click', () => {
+            tutorialDialog.classList.remove('active');
+        });
+
+        closeAiStats.addEventListener('click', () => {
+            aiStatsDialog.classList.remove('active');
+        });
+
+        // Close dialogs on overlay click
+        tutorialDialog.addEventListener('click', (e) => {
+            if (e.target === tutorialDialog) {
+                tutorialDialog.classList.remove('active');
+            }
+        });
+
+        aiStatsDialog.addEventListener('click', (e) => {
+            if (e.target === aiStatsDialog) {
+                aiStatsDialog.classList.remove('active');
+            }
+        });
+
+        // Close dialogs on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Escape') {
+                tutorialDialog.classList.remove('active');
+                aiStatsDialog.classList.remove('active');
+            }
+        });
 
         // Start game
         generateObstacles();
