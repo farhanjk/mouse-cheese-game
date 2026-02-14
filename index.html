@@ -911,8 +911,9 @@
 
             if (!isEating && checkWin()) {
                 isEating = true;
-                messageEl.textContent = 'Nom nom nom... Press SPACE to continue';
-                messageEl.style.color = '#FFD700';
+                messageEl.textContent = 'Nom nom nom... Press SPACE for next level';
+                messageEl.style.color = '#2ecc71';
+                spawnConfetti();
             }
 
             // Update time
@@ -1046,17 +1047,9 @@
         // Event listeners
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
-            if (e.code === 'Space') {
-                if (isEating && !gameWon) {
-                    // Finish eating, complete the level
-                    gameWon = true;
-                    isEating = false;
-                    messageEl.textContent = `Level ${level} Complete! Press SPACE for next level`;
-                    messageEl.style.color = '#2ecc71';
-                    spawnConfetti();
-                } else if (gameWon) {
-                    nextLevel();
-                }
+            if (e.code === 'Space' && isEating) {
+                // Go directly to next level
+                nextLevel();
             }
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
                 e.preventDefault();
