@@ -599,11 +599,25 @@
             }
         }
 
+        let electricSparks = [];
+
         function triggerHit() {
             isHit = true;
             hitFlash = 1;
-            messageEl.textContent = 'Ouch! Restarting level...';
-            messageEl.style.color = '#e74c3c';
+            messageEl.textContent = 'ZZZAP! Restarting level...';
+            messageEl.style.color = '#00FFFF';
+
+            // Create electric sparks
+            electricSparks = [];
+            for (let i = 0; i < 20; i++) {
+                electricSparks.push({
+                    x: mouse.x,
+                    y: mouse.y,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
+                    life: 1
+                });
+            }
 
             setTimeout(() => {
                 restartLevel();
@@ -616,6 +630,7 @@
             generateObstacles();
             isHit = false;
             hitFlash = 0;
+            electricSparks = [];
             messageEl.textContent = '';
         }
 
@@ -722,6 +737,7 @@
             gameWon = false;
             isHit = false;
             hitFlash = 0;
+            electricSparks = [];
             celebrationActive = false;
             confetti = [];
             generateObstacles();
@@ -731,9 +747,18 @@
             // Update zapper animation
             zapperPhase += 0.1;
 
-            // Decay hit flash
+            // Decay hit flash and update sparks
             if (hitFlash > 0) {
-                hitFlash -= 0.05;
+                hitFlash -= 0.03;
+
+                // Update electric sparks
+                for (const spark of electricSparks) {
+                    spark.x += spark.vx;
+                    spark.y += spark.vy;
+                    spark.life -= 0.03;
+                    spark.vx *= 0.95;
+                    spark.vy *= 0.95;
+                }
             }
 
             // Update confetti
@@ -820,28 +845,74 @@
             // Draw mouse
             drawMouse(mouse.x, mouse.y, mouse.size);
 
-            // Draw hit flash overlay
+            // Draw electric shock effect
             if (hitFlash > 0) {
-                ctx.fillStyle = `rgba(255, 0, 0, ${hitFlash * 0.5})`;
+                // Flickering cyan overlay
+                const flicker = Math.random() > 0.5 ? 1 : 0.5;
+                ctx.fillStyle = `rgba(0, 255, 255, ${hitFlash * 0.3 * flicker})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Draw explosion effect around mouse
-                ctx.strokeStyle = `rgba(255, 255, 0, ${hitFlash})`;
+                // Draw lightning bolts from mouse
+                ctx.strokeStyle = `rgba(0, 255, 255, ${hitFlash})`;
                 ctx.lineWidth = 3;
+                ctx.shadowColor = '#00FFFF';
+                ctx.shadowBlur = 20;
+
                 for (let i = 0; i < 8; i++) {
-                    const angle = (i / 8) * Math.PI * 2;
-                    const innerRadius = 20 + (1 - hitFlash) * 30;
-                    const outerRadius = 40 + (1 - hitFlash) * 50;
+                    const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.3;
+                    let x = mouse.x;
+                    let y = mouse.y;
+                    const length = 40 + (1 - hitFlash) * 60;
+
                     ctx.beginPath();
-                    ctx.moveTo(
-                        mouse.x + Math.cos(angle) * innerRadius,
-                        mouse.y + Math.sin(angle) * innerRadius
-                    );
-                    ctx.lineTo(
-                        mouse.x + Math.cos(angle) * outerRadius,
-                        mouse.y + Math.sin(angle) * outerRadius
-                    );
+                    ctx.moveTo(x, y);
+
+                    // Jagged lightning path
+                    for (let j = 0; j < 5; j++) {
+                        const stepLength = length / 5;
+                        x += Math.cos(angle) * stepLength + (Math.random() - 0.5) * 15;
+                        y += Math.sin(angle) * stepLength + (Math.random() - 0.5) * 15;
+                        ctx.lineTo(x, y);
+                    }
                     ctx.stroke();
+                }
+
+                // Draw skeleton effect on mouse (flashing bones)
+                if (Math.random() > 0.3) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${hitFlash})`;
+                    ctx.lineWidth = 2;
+                    // Skeleton body
+                    ctx.beginPath();
+                    ctx.moveTo(mouse.x - 15, mouse.y);
+                    ctx.lineTo(mouse.x + 15, mouse.y);
+                    ctx.moveTo(mouse.x, mouse.y - 10);
+                    ctx.lineTo(mouse.x, mouse.y + 10);
+                    // Skeleton ribs
+                    ctx.moveTo(mouse.x - 8, mouse.y - 5);
+                    ctx.lineTo(mouse.x + 8, mouse.y - 5);
+                    ctx.moveTo(mouse.x - 8, mouse.y + 5);
+                    ctx.lineTo(mouse.x + 8, mouse.y + 5);
+                    ctx.stroke();
+                }
+
+                ctx.shadowBlur = 0;
+
+                // Draw electric sparks
+                for (const spark of electricSparks) {
+                    if (spark.life > 0) {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${spark.life})`;
+                        ctx.beginPath();
+                        ctx.arc(spark.x, spark.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Mini lightning from spark
+                        ctx.strokeStyle = `rgba(0, 255, 255, ${spark.life})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(spark.x, spark.y);
+                        ctx.lineTo(spark.x + (Math.random() - 0.5) * 10, spark.y + (Math.random() - 0.5) * 10);
+                        ctx.stroke();
+                    }
                 }
             }
 
