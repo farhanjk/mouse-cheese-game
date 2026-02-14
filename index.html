@@ -362,7 +362,7 @@
         const restartBtn = document.getElementById('restartBtn');
 
         let mouse = { x: 50, y: 200, size: 30, speed: 5 };
-        let cheese = { x: 500, y: 200, size: 35 };
+        let cheese = { x: 500, y: 200, size: 35, currentSize: 35 };
         let obstacles = [];
         let level = 1;
         let score = 0;
@@ -373,6 +373,8 @@
         let isHit = false;
         let confetti = [];
         let celebrationActive = false;
+        let isEating = false;
+        let nibbleFrame = 0;
 
         function drawMouse(x, y, size) {
             // Body
@@ -423,6 +425,85 @@
                 ctx.moveTo(x + size * 0.6, y + size * 0.05);
                 ctx.lineTo(x + size * 0.9, y + i * size * 0.15);
                 ctx.stroke();
+            }
+        }
+
+        function drawEatingMouse(x, y, size, frame) {
+            // Bobbing animation
+            const bob = Math.sin(frame) * 2;
+            const mouthOpen = Math.sin(frame * 2) > 0;
+
+            // Body
+            ctx.fillStyle = '#808080';
+            ctx.beginPath();
+            ctx.ellipse(x, y + bob, size * 0.6, size * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head (moves forward when nibbling)
+            const headOffset = mouthOpen ? 3 : 0;
+            ctx.beginPath();
+            ctx.arc(x + size * 0.4 + headOffset, y + bob, size * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ears
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.5 + headOffset, y - size * 0.35 + bob, size * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + size * 0.3 + headOffset, y - size * 0.4 + bob, size * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Happy closed eyes (arcs)
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x + size * 0.55 + headOffset, y - size * 0.1 + bob, size * 0.06, 0, Math.PI);
+            ctx.stroke();
+
+            // Nose
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.7 + headOffset, y + size * 0.05 + bob, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mouth (open/closed for chewing)
+            if (mouthOpen) {
+                ctx.fillStyle = '#FF6B6B';
+                ctx.beginPath();
+                ctx.arc(x + size * 0.65 + headOffset, y + size * 0.15 + bob, size * 0.1, 0, Math.PI);
+                ctx.fill();
+            }
+
+            // Tail (wagging happily)
+            const tailWag = Math.sin(frame * 3) * 0.2;
+            ctx.strokeStyle = '#808080';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - size * 0.5, y + bob);
+            ctx.quadraticCurveTo(x - size * 0.8, y - size * 0.3 + Math.sin(frame * 3) * 10, x - size * 0.9, y + size * 0.2 + bob);
+            ctx.stroke();
+
+            // Whiskers (twitching)
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            for (let i = -1; i <= 1; i++) {
+                const twitch = Math.sin(frame * 4 + i) * 3;
+                ctx.beginPath();
+                ctx.moveTo(x + size * 0.6 + headOffset, y + size * 0.05 + bob);
+                ctx.lineTo(x + size * 0.9 + headOffset, y + i * size * 0.15 + bob + twitch);
+                ctx.stroke();
+            }
+
+            // Cheese crumbs flying
+            ctx.fillStyle = '#FFD700';
+            for (let i = 0; i < 3; i++) {
+                const crumbX = x + size * 0.8 + Math.sin(frame + i * 2) * 15;
+                const crumbY = y + Math.cos(frame * 2 + i) * 10 - 5;
+                const crumbSize = 2 + Math.random();
+                ctx.beginPath();
+                ctx.arc(crumbX, crumbY + bob, crumbSize, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
@@ -729,9 +810,12 @@
             mouse.y = 200;
             cheese.x = 450 + Math.random() * 100;
             cheese.y = 50 + Math.random() * 300;
+            cheese.currentSize = cheese.size;
 
             generateObstacles();
             gameWon = false;
+            isEating = false;
+            nibbleFrame = 0;
             celebrationActive = false;
             confetti = [];
             messageEl.textContent = '';
@@ -742,11 +826,13 @@
             score = 0;
             startTime = Date.now();
             mouse = { x: 50, y: 200, size: 30, speed: 5 };
-            cheese = { x: 500, y: 200, size: 35 };
+            cheese = { x: 500, y: 200, size: 35, currentSize: 35 };
             levelEl.textContent = level;
             scoreEl.textContent = score;
             messageEl.textContent = '';
             gameWon = false;
+            isEating = false;
+            nibbleFrame = 0;
             isHit = false;
             hitFlash = 0;
             electricSparks = [];
@@ -778,11 +864,23 @@
                 updateConfetti();
             }
 
-            if (!gameWon && !isHit) {
+            // Update eating animation
+            if (isEating && !gameWon) {
+                nibbleFrame += 0.3;
+                // Slowly shrink the cheese
+                if (cheese.currentSize > 5) {
+                    cheese.currentSize -= 0.15;
+                }
+                // Keep mouse at cheese position
+                mouse.x = cheese.x - 20;
+                mouse.y = cheese.y;
+            }
+
+            if (!gameWon && !isHit && !isEating) {
                 updateObstacles();
             }
 
-            if (gameWon || isHit) return;
+            if (gameWon || isHit || isEating) return;
 
             let newX = mouse.x;
             let newY = mouse.y;
@@ -811,11 +909,10 @@
                 mouse.y = newY;
             }
 
-            if (checkWin()) {
-                gameWon = true;
-                messageEl.textContent = `Level ${level} Complete! Press SPACE for next level`;
-                messageEl.style.color = '#2ecc71';
-                spawnConfetti();
+            if (!isEating && checkWin()) {
+                isEating = true;
+                messageEl.textContent = 'Nom nom nom... Press SPACE to continue';
+                messageEl.style.color = '#FFD700';
             }
 
             // Update time
@@ -851,11 +948,17 @@
             // Draw obstacles
             obstacles.forEach(drawObstacle);
 
-            // Draw cheese
-            drawCheese(cheese.x, cheese.y, cheese.size);
+            // Draw cheese (use currentSize for eating animation)
+            if (cheese.currentSize > 5) {
+                drawCheese(cheese.x, cheese.y, cheese.currentSize);
+            }
 
-            // Draw mouse
-            drawMouse(mouse.x, mouse.y, mouse.size);
+            // Draw mouse (with nibble animation if eating)
+            if (isEating) {
+                drawEatingMouse(mouse.x, mouse.y, mouse.size, nibbleFrame);
+            } else {
+                drawMouse(mouse.x, mouse.y, mouse.size);
+            }
 
             // Draw electric shock effect
             if (hitFlash > 0) {
@@ -943,8 +1046,17 @@
         // Event listeners
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
-            if (e.code === 'Space' && gameWon) {
-                nextLevel();
+            if (e.code === 'Space') {
+                if (isEating && !gameWon) {
+                    // Finish eating, complete the level
+                    gameWon = true;
+                    isEating = false;
+                    messageEl.textContent = `Level ${level} Complete! Press SPACE for next level`;
+                    messageEl.style.color = '#2ecc71';
+                    spawnConfetti();
+                } else if (gameWon) {
+                    nextLevel();
+                }
             }
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
                 e.preventDefault();
