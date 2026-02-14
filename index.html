@@ -59,6 +59,17 @@
             font-size: 18px;
         }
 
+        .time-warning {
+            animation: timePulse 0.5s ease-in-out infinite;
+            color: #e74c3c !important;
+            font-weight: bold;
+        }
+
+        @keyframes timePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
         #message {
             margin-top: 15px;
             font-size: 24px;
@@ -366,7 +377,8 @@
         let obstacles = [];
         let level = 1;
         let score = 0;
-        let startTime = Date.now();
+        let levelStartTime = Date.now();
+        const timeLimit = 60;
         let gameWon = false;
         let keys = {};
         let hitFlash = 0;
@@ -375,6 +387,7 @@
         let celebrationActive = false;
         let isEating = false;
         let nibbleFrame = 0;
+        let timeUpFlash = 0;
 
         function drawMouse(x, y, size) {
             // Body
@@ -723,8 +736,10 @@
             generateObstacles();
             isHit = false;
             hitFlash = 0;
+            timeUpFlash = 0;
             electricSparks = [];
             messageEl.textContent = '';
+            timeEl.parentElement.classList.remove('time-warning');
         }
 
         function checkCollision(m, obs) {
@@ -819,12 +834,14 @@
             celebrationActive = false;
             confetti = [];
             messageEl.textContent = '';
+            levelStartTime = Date.now();
+            timeEl.parentElement.classList.remove('time-warning');
         }
 
         function resetGame() {
             level = 1;
             score = 0;
-            startTime = Date.now();
+            levelStartTime = Date.now();
             mouse = { x: 50, y: 200, size: 30, speed: 5 };
             cheese = { x: 500, y: 200, size: 35, currentSize: 35 };
             levelEl.textContent = level;
@@ -835,10 +852,12 @@
             nibbleFrame = 0;
             isHit = false;
             hitFlash = 0;
+            timeUpFlash = 0;
             electricSparks = [];
             celebrationActive = false;
             confetti = [];
             generateObstacles();
+            timeEl.parentElement.classList.remove('time-warning');
         }
 
         function update() {
@@ -857,6 +876,11 @@
                     spark.vx *= 0.95;
                     spark.vy *= 0.95;
                 }
+            }
+
+            // Decay time up flash
+            if (timeUpFlash > 0) {
+                timeUpFlash -= 0.03;
             }
 
             // Update confetti
@@ -916,8 +940,34 @@
                 spawnConfetti();
             }
 
-            // Update time
-            timeEl.textContent = Math.floor((Date.now() - startTime) / 1000);
+            // Update countdown timer
+            const elapsed = Math.floor((Date.now() - levelStartTime) / 1000);
+            const remaining = Math.max(0, timeLimit - elapsed);
+            timeEl.textContent = remaining;
+
+            // Animate when less than 10 seconds
+            if (remaining <= 10 && remaining > 0) {
+                timeEl.parentElement.classList.add('time-warning');
+            } else {
+                timeEl.parentElement.classList.remove('time-warning');
+            }
+
+            // Time's up!
+            if (remaining === 0 && !isEating) {
+                triggerTimeUp();
+            }
+        }
+
+        function triggerTimeUp() {
+            isHit = true;
+            timeUpFlash = 1;
+            messageEl.textContent = "Time's up! Restarting level...";
+            messageEl.style.color = '#e74c3c';
+
+            setTimeout(() => {
+                restartLevel();
+                levelStartTime = Date.now();
+            }, 1000);
         }
 
         function draw() {
@@ -1030,6 +1080,28 @@
                         ctx.stroke();
                     }
                 }
+            }
+
+            // Draw time up flash effect
+            if (timeUpFlash > 0) {
+                const flicker = Math.random() > 0.5 ? 1 : 0.7;
+                ctx.fillStyle = `rgba(231, 76, 60, ${timeUpFlash * 0.5 * flicker})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw clock icon in center
+                ctx.strokeStyle = `rgba(255, 255, 255, ${timeUpFlash})`;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, 40, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Clock hands
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.lineTo(canvas.width / 2, canvas.height / 2 - 25);
+                ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.lineTo(canvas.width / 2 + 20, canvas.height / 2);
+                ctx.stroke();
             }
 
             // Draw confetti celebration
