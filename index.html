@@ -18,6 +18,13 @@
             min-height: 100vh;
             background: linear-gradient(135deg, #2c3e50, #3498db);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        .main-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 30px;
         }
 
         .game-container {
@@ -78,41 +85,44 @@
         }
 
         .about-section {
-            margin-top: 30px;
             padding: 20px;
             background: rgba(255,255,255,0.1);
             border-radius: 15px;
-            max-width: 600px;
+            width: 180px;
+            flex-shrink: 0;
         }
 
         .about-section h2 {
             color: #fff;
             margin-bottom: 10px;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .creators {
             color: #ecf0f1;
-            font-size: 14px;
+            font-size: 13px;
             margin-bottom: 15px;
+            line-height: 1.4;
         }
 
         .about-buttons {
             display: flex;
-            gap: 15px;
-            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .about-btn {
-            padding: 10px 20px;
-            font-size: 14px;
+            padding: 10px 15px;
+            font-size: 12px;
             border: none;
-            border-radius: 20px;
+            border-radius: 15px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
         }
 
         .about-btn:hover {
@@ -255,21 +265,23 @@
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1>Guide the Mouse to the Cheese!</h1>
-        <p class="instructions">Use Arrow Keys or WASD to move</p>
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
-        <div class="stats">
-            <span>Level: <span id="level">1</span></span>
-            <span>Score: <span id="score">0</span></span>
-            <span>Time: <span id="time">0</span>s</span>
+    <div class="main-wrapper">
+        <div class="game-container">
+            <h1>Guide the Mouse to the Cheese!</h1>
+            <p class="instructions">Use Arrow Keys or WASD to move</p>
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <div class="stats">
+                <span>Level: <span id="level">1</span></span>
+                <span>Score: <span id="score">0</span></span>
+                <span>Time: <span id="time">0</span>s</span>
+            </div>
+            <div id="message"></div>
+            <button id="restartBtn">Restart Game</button>
         </div>
-        <div id="message"></div>
-        <button id="restartBtn">Restart Game</button>
 
         <div class="about-section">
-            <h2>About This Game</h2>
-            <p class="creators">Created by <strong>Farhan Khan</strong> & <strong>Zoella Khan</strong></p>
+            <h2>About</h2>
+            <p class="creators">Created by<br><strong>Farhan Khan</strong><br>&<br><strong>Zoella Khan</strong></p>
             <div class="about-buttons">
                 <button class="about-btn tutorial-btn" id="tutorialBtn">
                     <span>?</span> How to Play
@@ -278,7 +290,7 @@
                     <svg class="claude-logo" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H8.2l-.696-.463-.063-.395.063-.131h2.378l.158-.197.715-2.058.142-.13h1.672l.142.13.714 2.058.159.197h2.378l.063.131-.063.395-.696.463H13.57l-.08.129.08.229 4.72 2.647.048.35-.238.286-3.428-.878-.16.063-.238 1.334-.127.128H9.854l-.127-.128-.239-1.334-.159-.063-3.428.878-.238-.286.048-.35zm6.327-7.391l-.476 1.373h1.88l-.476-1.373-.159-.298h-.61l-.159.298z"/>
                     </svg>
-                    Built with Claude
+                    Built with AI
                 </button>
             </div>
         </div>
