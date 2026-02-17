@@ -641,6 +641,15 @@
             currentSize: CONFIG.cheese.size
         };
 
+        // Store the initial layout for each level (so restarts use same positions)
+        let levelLayout = {
+            mouseX: 50,
+            mouseY: 200,
+            cheeseX: 500,
+            cheeseY: 200,
+            obstacles: []
+        };
+
         // ============== SAVE/LOAD ==============
         function saveProgress() {
             localStorage.setItem('mouseCheeseGame', JSON.stringify({
@@ -1036,13 +1045,34 @@
             }, 1000);
         }
 
+        function saveLevelLayout() {
+            levelLayout.mouseX = mouse.x;
+            levelLayout.mouseY = mouse.y;
+            levelLayout.cheeseX = cheese.x;
+            levelLayout.cheeseY = cheese.y;
+            // Deep copy obstacles
+            levelLayout.obstacles = obstacles.map(obs => ({...obs}));
+        }
+
+        function restoreLevelLayout() {
+            mouse.x = levelLayout.mouseX;
+            mouse.y = levelLayout.mouseY;
+            cheese.x = levelLayout.cheeseX;
+            cheese.y = levelLayout.cheeseY;
+            cheese.currentSize = cheese.size;
+            // Deep copy obstacles back
+            obstacles = levelLayout.obstacles.map(obs => ({...obs}));
+            state.obstacles = obstacles;
+        }
+
         function restartLevel() {
-            positionMouseAndCheese();
-            generateObstacles();
+            // Restore the saved layout instead of generating new one
+            restoreLevelLayout();
             isHit = false;
             hitFlash = 0;
             timeUpFlash = 0;
             electricSparks = [];
+            state.levelStartTime = levelStartTime = Date.now();
             messageEl.textContent = '';
             timeEl.parentElement.classList.remove('time-warning');
         }
@@ -1184,6 +1214,7 @@
 
             positionMouseAndCheese();
             generateObstacles();
+            saveLevelLayout();
             resetLevelState();
             saveProgress();
         }
@@ -1198,6 +1229,7 @@
 
             positionMouseAndCheese();
             generateObstacles();
+            saveLevelLayout();
             resetLevelState();
             clearProgress();
 
@@ -1308,7 +1340,6 @@
 
             setTimeout(() => {
                 restartLevel();
-                levelStartTime = Date.now();
             }, 1000);
         }
 
@@ -1609,6 +1640,7 @@
         loadProgress();
         positionMouseAndCheese();
         generateObstacles();
+        saveLevelLayout();
         gameLoop();
     </script>
 </body>
