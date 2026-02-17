@@ -542,7 +542,7 @@
         let level = 1;
         let score = 0;
         let levelStartTime = Date.now();
-        const timeLimit = 60;
+        const timeLimit = 30;
         let gameWon = false;
         let keys = {};
         let hitFlash = 0;
@@ -1082,19 +1082,15 @@
             newX = Math.max(mouse.size, Math.min(canvas.width - mouse.size, newX));
             newY = Math.max(mouse.size * 0.5, Math.min(canvas.height - mouse.size * 0.5, newY));
 
-            // Obstacle collision
-            let canMove = true;
-            const testMouse = { ...mouse, x: newX, y: newY };
+            // Obstacle collision - zap on any contact
+            mouse.x = newX;
+            mouse.y = newY;
+
             for (const obs of obstacles) {
-                if (checkCollision(testMouse, obs)) {
-                    canMove = false;
+                if (checkCollision(mouse, obs)) {
+                    triggerHit();
                     break;
                 }
-            }
-
-            if (canMove) {
-                mouse.x = newX;
-                mouse.y = newY;
             }
 
             if (!isEating && checkWin()) {
