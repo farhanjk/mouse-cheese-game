@@ -86,21 +86,28 @@
             min-height: 30px;
         }
 
-        #restartBtn {
+        .next-level-btn {
             margin-top: 15px;
             padding: 12px 30px;
             font-size: 16px;
-            background: #e74c3c;
+            background: #2ecc71;
             color: white;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
+            transition: transform 0.2s, background 0.2s, opacity 0.2s;
         }
 
-        #restartBtn:hover {
-            background: #c0392b;
+        .next-level-btn:hover:not(:disabled) {
+            background: #27ae60;
             transform: scale(1.05);
+        }
+
+        .next-level-btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .about-section {
@@ -325,11 +332,11 @@
         .dpad-btn.right { grid-column: 3; grid-row: 2; }
         .dpad-btn.down { grid-column: 2; grid-row: 3; }
 
-        .mobile-space-btn {
+        .mobile-restart-btn {
             margin-top: 10px;
             padding: 15px 40px;
             font-size: 16px;
-            background: #2ecc71;
+            background: #e74c3c;
             color: white;
             border: none;
             border-radius: 25px;
@@ -449,7 +456,7 @@
                 <span>Time: <span id="time">0</span>s</span>
             </div>
             <div id="message"></div>
-            <button id="restartBtn">Restart Game</button>
+            <button id="nextLevelBtn" class="next-level-btn" disabled>Next Level</button>
 
             <!-- Mobile Touch Controls -->
             <div class="touch-controls" id="touchControls">
@@ -460,7 +467,7 @@
                     <button class="dpad-btn right" data-dir="right">▶</button>
                     <button class="dpad-btn down" data-dir="down">▼</button>
                 </div>
-                <button class="mobile-space-btn" id="mobileSpaceBtn">NEXT LEVEL</button>
+                <button class="mobile-restart-btn" id="restartBtn">RESTART</button>
             </div>
         </div>
 
@@ -514,7 +521,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">34</div>
+                        <div class="stat-value">35</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -559,6 +566,7 @@
         const scoreEl = document.getElementById('score');
         const timeEl = document.getElementById('time');
         const restartBtn = document.getElementById('restartBtn');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
 
         // ============== GAME CONFIG ==============
         const CONFIG = {
@@ -1219,6 +1227,7 @@
             state.levelStartTime = levelStartTime = Date.now();
             messageEl.textContent = '';
             timeEl.parentElement.classList.remove('time-warning');
+            nextLevelBtn.disabled = true;
         }
 
         function nextLevel() {
@@ -1319,6 +1328,7 @@
                 isEating = true;
                 messageEl.textContent = 'Nom nom nom... Press SPACE for next level';
                 messageEl.style.color = '#2ecc71';
+                nextLevelBtn.disabled = false;
                 spawnConfetti();
                 return; // Skip collision check - player won!
             }
@@ -1566,9 +1576,15 @@
             }
         });
 
+        // Next level button handler
+        nextLevelBtn.addEventListener('click', () => {
+            if (isEating) {
+                nextLevel();
+            }
+        });
+
         // Mobile touch controls
         const dpadBtns = document.querySelectorAll('.dpad-btn[data-dir]');
-        const mobileSpaceBtn = document.getElementById('mobileSpaceBtn');
 
         const dirToKey = {
             'up': 'ArrowUp',
@@ -1608,18 +1624,6 @@
             });
         });
 
-        mobileSpaceBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (isEating) {
-                nextLevel();
-            }
-        }, { passive: false });
-
-        mobileSpaceBtn.addEventListener('click', () => {
-            if (isEating) {
-                nextLevel();
-            }
-        });
 
 
         // Dialog handling
