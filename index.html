@@ -14,11 +14,12 @@
         body {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             background: linear-gradient(135deg, #2c3e50, #3498db);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .main-wrapper {
@@ -524,6 +525,20 @@
                 <p class="ai-note">Made with Claude Code - AI pair programming in the terminal.</p>
             </div>
             <button class="close-btn" id="closeAiStats">Cool!</button>
+        </div>
+    </div>
+
+    <!-- Restart Confirmation Dialog -->
+    <div class="dialog-overlay" id="restartDialog">
+        <div class="dialog" style="max-width: 350px;">
+            <h2>Restart Game?</h2>
+            <div class="dialog-content">
+                <p>Are you sure you want to restart? Your current progress will be lost.</p>
+            </div>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                <button class="close-btn" id="confirmRestart" style="background: #e74c3c;">Yes, Restart</button>
+                <button class="close-btn" id="cancelRestart" style="background: #7f8c8d;">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -1421,7 +1436,29 @@
             keys[e.code] = false;
         });
 
-        restartBtn.addEventListener('click', resetGame);
+        // Restart confirmation
+        const restartDialog = document.getElementById('restartDialog');
+        const confirmRestart = document.getElementById('confirmRestart');
+        const cancelRestart = document.getElementById('cancelRestart');
+
+        restartBtn.addEventListener('click', () => {
+            restartDialog.classList.add('active');
+        });
+
+        confirmRestart.addEventListener('click', () => {
+            restartDialog.classList.remove('active');
+            resetGame();
+        });
+
+        cancelRestart.addEventListener('click', () => {
+            restartDialog.classList.remove('active');
+        });
+
+        restartDialog.addEventListener('click', (e) => {
+            if (e.target === restartDialog) {
+                restartDialog.classList.remove('active');
+            }
+        });
 
         // Mobile touch controls
         const dpadBtns = document.querySelectorAll('.dpad-btn[data-dir]');
