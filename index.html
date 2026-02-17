@@ -514,7 +514,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">33</div>
+                        <div class="stat-value">34</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -1361,13 +1361,20 @@
         }
 
         function draw() {
-            // Clear canvas with grid background
-            ctx.fillStyle = '#1a1a2e';
+            // Clear canvas with gradient background
+            const gradient = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+            );
+            gradient.addColorStop(0, '#1e2a4a');
+            gradient.addColorStop(0.5, '#1a1a2e');
+            gradient.addColorStop(1, '#0d0d1a');
+            ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw grid
+            // Draw subtle grid
             const gridSize = 40;
-            ctx.strokeStyle = '#16213e';
+            ctx.strokeStyle = 'rgba(60, 80, 120, 0.3)';
             ctx.lineWidth = 1;
 
             // Vertical lines
@@ -1385,6 +1392,19 @@
                 ctx.lineTo(canvas.width, y);
                 ctx.stroke();
             }
+
+            // Corner vignettes for depth
+            const vignetteGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 150);
+            vignetteGradient.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
+            vignetteGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = vignetteGradient;
+            ctx.fillRect(0, 0, 150, 150);
+
+            const vignetteGradient2 = ctx.createRadialGradient(canvas.width, canvas.height, 0, canvas.width, canvas.height, 150);
+            vignetteGradient2.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
+            vignetteGradient2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = vignetteGradient2;
+            ctx.fillRect(canvas.width - 150, canvas.height - 150, 150, 150);
 
             // Draw obstacles
             obstacles.forEach(drawObstacle);
@@ -1601,12 +1621,6 @@
             }
         });
 
-        // Prevent scrolling only on D-pad buttons themselves
-        document.body.addEventListener('touchmove', (e) => {
-            if (e.target.closest('.dpad-btn') || e.target.closest('.mobile-space-btn')) {
-                e.preventDefault();
-            }
-        }, { passive: false });
 
         // Dialog handling
         const tutorialDialog = document.getElementById('tutorialDialog');
