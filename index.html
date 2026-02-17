@@ -824,12 +824,15 @@
                 let valid = false;
 
                 do {
+                    const moveHorizontal = Math.random() < 0.5;
+                    const speed = (0.5 + Math.random() * 1) * (Math.random() < 0.5 ? 1 : -1);
                     obs = {
                         x: 120 + Math.random() * (canvas.width - 280),
                         y: Math.random() * (canvas.height - 80),
                         width: 40 + Math.random() * 30,
                         height: 40 + Math.random() * 30,
-                        vy: (0.5 + Math.random() * 1) * (Math.random() < 0.5 ? 1 : -1)
+                        vx: moveHorizontal ? speed : 0,
+                        vy: moveHorizontal ? 0 : speed
                     };
 
                     valid = !checkCollision(mouse, obs) && !checkCheeseCollision(obs);
@@ -851,7 +854,18 @@
 
         function updateObstacles() {
             for (const obs of obstacles) {
+                // Update position
+                obs.x += obs.vx;
                 obs.y += obs.vy;
+
+                // Bounce off left and right edges
+                if (obs.x <= 0) {
+                    obs.x = 0;
+                    obs.vx = Math.abs(obs.vx);
+                } else if (obs.x + obs.width >= canvas.width) {
+                    obs.x = canvas.width - obs.width;
+                    obs.vx = -Math.abs(obs.vx);
+                }
 
                 // Bounce off top and bottom edges
                 if (obs.y <= 0) {
