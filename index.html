@@ -514,7 +514,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">32</div>
+                        <div class="stat-value">33</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -953,6 +953,17 @@
                    obs1.y + obs1.height + minGap > obs2.y;
         }
 
+        function isMouseInObstaclePath(obs) {
+            const buffer = mouse.size; // Give some buffer space
+            if (obs.vx !== 0) {
+                // Horizontal movement - check if mouse Y overlaps obstacle Y range
+                return mouse.y + buffer > obs.y && mouse.y - buffer < obs.y + obs.height;
+            } else {
+                // Vertical movement - check if mouse X overlaps obstacle X range
+                return mouse.x + buffer > obs.x && mouse.x - buffer < obs.x + obs.width;
+            }
+        }
+
         function generateObstacles() {
             obstacles = [];
             state.obstacles = obstacles;
@@ -977,7 +988,7 @@
                         vy: moveHorizontal ? 0 : speed
                     };
 
-                    valid = !checkCollision(mouse, obs) && !checkCheeseCollision(obs);
+                    valid = !checkCollision(mouse, obs) && !checkCheeseCollision(obs) && !isMouseInObstaclePath(obs);
 
                     // Check distance from other obstacles
                     for (const existing of obstacles) {
