@@ -16,7 +16,11 @@
             justify-content: center;
             align-items: flex-start;
             min-height: 100vh;
-            background: linear-gradient(135deg, #2c3e50, #3498db);
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(120, 100, 200, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(100, 180, 220, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(80, 120, 180, 0.1) 0%, transparent 70%),
+                linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 20px;
             overflow-y: auto;
@@ -510,7 +514,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">30</div>
+                        <div class="stat-value">32</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -1586,9 +1590,9 @@
             }
         });
 
-        // Prevent scrolling on touch
+        // Prevent scrolling only on D-pad buttons themselves
         document.body.addEventListener('touchmove', (e) => {
-            if (e.target.closest('.touch-controls')) {
+            if (e.target.closest('.dpad-btn') || e.target.closest('.mobile-space-btn')) {
                 e.preventDefault();
             }
         }, { passive: false });
