@@ -536,22 +536,96 @@
         const timeEl = document.getElementById('time');
         const restartBtn = document.getElementById('restartBtn');
 
-        let mouse = { x: 50, y: 200, size: 30, speed: 5 };
-        let cheese = { x: 500, y: 200, size: 35, currentSize: 35 };
-        let obstacles = [];
-        let level = 1;
-        let score = 0;
-        let levelStartTime = Date.now();
-        const timeLimit = 30;
-        let gameWon = false;
-        let keys = {};
-        let hitFlash = 0;
-        let isHit = false;
-        let confetti = [];
-        let celebrationActive = false;
-        let isEating = false;
-        let nibbleFrame = 0;
-        let timeUpFlash = 0;
+        // ============== GAME CONFIG ==============
+        const CONFIG = {
+            // Timing
+            CONFIG.timeLimit: 30,
+            hitFlashDecay: 0.03,
+            timeUpFlashDecay: 0.03,
+
+            // Mouse settings
+            mouse: {
+                size: 30,
+                speed: 5
+            },
+
+            // Cheese settings
+            cheese: {
+                size: 35,
+                shrinkRate: 0.15,
+                minSize: 5
+            },
+
+            // Obstacle settings
+            obstacles: {
+                maxCount: 8,
+                minSize: 40,
+                maxSize: 70,
+                minSpeed: 0.5,
+                maxSpeed: 1.5,
+                minGap: 80,
+                spawnMarginX: 120,
+                spawnMarginRight: 280
+            },
+
+            // Visual effects
+            effects: {
+                confettiCount: 100,
+                sparkCount: 20,
+                colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8']
+            },
+
+            // Spawn positions for mouse/cheese
+            spawnPositions: [
+                { x: 50, y: 50 },
+                { x: 550, y: 50 },
+                { x: 50, y: 350 },
+                { x: 550, y: 350 },
+                { x: 50, y: 200 },
+                { x: 550, y: 200 },
+                { x: 300, y: 50 },
+                { x: 300, y: 350 }
+            ]
+        };
+
+        // ============== GAME STATE ==============
+        const state = {
+            level: 1,
+            score: 0,
+            levelStartTime: Date.now(),
+            gameWon: false,
+            isHit: false,
+            isEating: false,
+            hitFlash: 0,
+            timeUpFlash: 0,
+            nibbleFrame: 0,
+            celebrationActive: false,
+            keys: {},
+            confetti: [],
+            electricSparks: [],
+            obstacles: []
+        };
+
+        // ============== ENTITIES ==============
+        const mouse = {
+            x: 50,
+            y: 200,
+            size: CONFIG.mouse.size,
+            speed: CONFIG.mouse.speed
+        };
+
+        const cheese = {
+            x: 500,
+            y: 200,
+            size: CONFIG.cheese.size,
+            currentSize: CONFIG.cheese.size
+        };
+
+        // Legacy references for compatibility
+        let obstacles = state.obstacles;
+        let confetti = state.confetti;
+        let keys = state.keys;
+        let electricSparks = state.electricSparks;
 
         function drawMouse(x, y, size) {
             // Body
@@ -815,8 +889,9 @@
 
         function generateObstacles() {
             obstacles = [];
-            const numObstacles = Math.min(level + 1, 8);
-            const minGap = 80;
+            state.obstacles = obstacles;
+            const cfg = CONFIG.obstacles;
+            const numObstacles = Math.min(state.level + 1, cfg.maxCount);
 
             for (let i = 0; i < numObstacles; i++) {
                 let obs;
@@ -825,12 +900,13 @@
 
                 do {
                     const moveHorizontal = Math.random() < 0.5;
-                    const speed = (0.5 + Math.random() * 1) * (Math.random() < 0.5 ? 1 : -1);
+                    const speed = (cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed)) * (Math.random() < 0.5 ? 1 : -1);
+                    const sizeRange = cfg.maxSize - cfg.minSize;
                     obs = {
-                        x: 120 + Math.random() * (canvas.width - 280),
-                        y: Math.random() * (canvas.height - 80),
-                        width: 40 + Math.random() * 30,
-                        height: 40 + Math.random() * 30,
+                        x: cfg.spawnMarginX + Math.random() * (canvas.width - cfg.spawnMarginRight),
+                        y: Math.random() * (canvas.height - cfg.minSize),
+                        width: cfg.minSize + Math.random() * sizeRange * 0.5,
+                        height: cfg.minSize + Math.random() * sizeRange * 0.5,
                         vx: moveHorizontal ? speed : 0,
                         vy: moveHorizontal ? 0 : speed
                     };
@@ -839,7 +915,7 @@
 
                     // Check distance from other obstacles
                     for (const existing of obstacles) {
-                        if (checkObstacleOverlap(obs, existing, minGap)) {
+                        if (checkObstacleOverlap(obs, existing, cfg.minGap)) {
                             valid = false;
                             break;
                         }
@@ -886,14 +962,15 @@
         let electricSparks = [];
 
         function triggerHit() {
-            isHit = true;
-            hitFlash = 1;
+            state.isHit = isHit = true;
+            state.hitFlash = hitFlash = 1;
             messageEl.textContent = 'ZZZAP! Restarting level...';
             messageEl.style.color = '#00FFFF';
 
             // Create electric sparks
             electricSparks = [];
-            for (let i = 0; i < 20; i++) {
+            state.electricSparks = electricSparks;
+            for (let i = 0; i < CONFIG.effects.sparkCount; i++) {
                 electricSparks.push({
                     x: mouse.x,
                     y: mouse.y,
@@ -942,8 +1019,9 @@
 
         function spawnConfetti() {
             confetti = [];
-            const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-            for (let i = 0; i < 100; i++) {
+            state.confetti = confetti;
+            const colors = CONFIG.effects.colors;
+            for (let i = 0; i < CONFIG.effects.confettiCount; i++) {
                 confetti.push({
                     x: Math.random() * canvas.width,
                     y: -20 - Math.random() * 200,
@@ -956,6 +1034,7 @@
                     shape: Math.random() > 0.5 ? 'rect' : 'circle'
                 });
             }
+            state.celebrationActive = true;
             celebrationActive = true;
         }
 
@@ -993,17 +1072,7 @@
         }
 
         function positionMouseAndCheese() {
-            // Define corner/edge positions
-            const positions = [
-                { x: 50, y: 50 },                           // top-left
-                { x: canvas.width - 50, y: 50 },            // top-right
-                { x: 50, y: canvas.height - 50 },           // bottom-left
-                { x: canvas.width - 50, y: canvas.height - 50 }, // bottom-right
-                { x: 50, y: canvas.height / 2 },            // middle-left
-                { x: canvas.width - 50, y: canvas.height / 2 }, // middle-right
-                { x: canvas.width / 2, y: 50 },             // top-middle
-                { x: canvas.width / 2, y: canvas.height - 50 }  // bottom-middle
-            ];
+            const positions = CONFIG.spawnPositions;
 
             // Pick random position for mouse
             const mouseIdx = Math.floor(Math.random() * positions.length);
@@ -1040,44 +1109,47 @@
             cheese.currentSize = cheese.size;
         }
 
-        function nextLevel() {
-            level++;
-            levelEl.textContent = level;
-            score += 100 + level * 10;
-            scoreEl.textContent = score;
-
-            positionMouseAndCheese();
-            generateObstacles();
-            gameWon = false;
-            isEating = false;
-            nibbleFrame = 0;
-            celebrationActive = false;
-            confetti = [];
+        // Helper to reset level state
+        function resetLevelState() {
+            state.gameWon = gameWon = false;
+            state.isEating = isEating = false;
+            state.isHit = isHit = false;
+            state.hitFlash = hitFlash = 0;
+            state.timeUpFlash = timeUpFlash = 0;
+            state.nibbleFrame = nibbleFrame = 0;
+            state.celebrationActive = celebrationActive = false;
+            state.confetti = confetti = [];
+            state.electricSparks = electricSparks = [];
+            state.levelStartTime = levelStartTime = Date.now();
             messageEl.textContent = '';
-            levelStartTime = Date.now();
             timeEl.parentElement.classList.remove('time-warning');
         }
 
-        function resetGame() {
-            level = 1;
-            score = 0;
-            levelStartTime = Date.now();
-            mouse = { x: 50, y: 200, size: 30, speed: 5 };
-            cheese = { x: 500, y: 200, size: 35, currentSize: 35 };
+        function nextLevel() {
+            state.level = ++level;
+            levelEl.textContent = state.level;
+            state.score = score += 100 + state.level * 10;
+            scoreEl.textContent = state.score;
+
             positionMouseAndCheese();
-            levelEl.textContent = level;
-            scoreEl.textContent = score;
-            messageEl.textContent = '';
-            gameWon = false;
-            isEating = false;
-            nibbleFrame = 0;
-            isHit = false;
-            hitFlash = 0;
-            timeUpFlash = 0;
-            electricSparks = [];
-            celebrationActive = false;
-            confetti = [];
             generateObstacles();
+            resetLevelState();
+        }
+
+        function resetGame() {
+            state.level = level = 1;
+            state.score = score = 0;
+            mouse.size = CONFIG.mouse.size;
+            mouse.speed = CONFIG.mouse.speed;
+            cheese.size = CONFIG.cheese.size;
+            cheese.currentSize = CONFIG.cheese.size;
+
+            positionMouseAndCheese();
+            generateObstacles();
+            resetLevelState();
+
+            levelEl.textContent = state.level;
+            scoreEl.textContent = state.score;
             timeEl.parentElement.classList.remove('time-warning');
         }
 
@@ -1087,7 +1159,7 @@
 
             // Decay hit flash and update sparks
             if (hitFlash > 0) {
-                hitFlash -= 0.03;
+                state.hitFlash = hitFlash -= CONFIG.hitFlashDecay;
 
                 // Update electric sparks
                 for (const spark of electricSparks) {
@@ -1101,7 +1173,7 @@
 
             // Decay time up flash
             if (timeUpFlash > 0) {
-                timeUpFlash -= 0.03;
+                state.timeUpFlash = timeUpFlash -= CONFIG.timeUpFlashDecay;
             }
 
             // Update confetti
@@ -1111,10 +1183,10 @@
 
             // Update eating animation
             if (isEating && !gameWon) {
-                nibbleFrame += 0.3;
+                state.nibbleFrame = nibbleFrame += 0.3;
                 // Slowly shrink the cheese
-                if (cheese.currentSize > 5) {
-                    cheese.currentSize -= 0.15;
+                if (cheese.currentSize > CONFIG.cheese.minSize) {
+                    cheese.currentSize -= CONFIG.cheese.shrinkRate;
                 }
                 // Keep mouse at cheese position
                 mouse.x = cheese.x - 20;
@@ -1159,7 +1231,7 @@
 
             // Update countdown timer
             const elapsed = Math.floor((Date.now() - levelStartTime) / 1000);
-            const remaining = Math.max(0, timeLimit - elapsed);
+            const remaining = Math.max(0, CONFIG.timeLimit - elapsed);
             timeEl.textContent = remaining;
 
             // Animate when less than 10 seconds
