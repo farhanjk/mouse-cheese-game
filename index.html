@@ -289,11 +289,18 @@
             border-top: 1px solid #333;
         }
 
-        /* Touch Controls */
+        /* Touch Controls - show on touch devices */
         .touch-controls {
             display: none;
             margin-top: 15px;
             touch-action: none;
+        }
+
+        /* Show on touch-capable devices regardless of screen size */
+        @media (pointer: coarse) {
+            .touch-controls {
+                display: block;
+            }
         }
 
         .dpad {
@@ -521,7 +528,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">35</div>
+                        <div class="stat-value">36</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -1670,6 +1677,11 @@
                 aiStatsDialog.classList.remove('active');
             }
         });
+
+        // Detect touch device and show controls (fallback for older browsers)
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.getElementById('touchControls').style.display = 'block';
+        }
 
         // Start game
         loadProgress();
