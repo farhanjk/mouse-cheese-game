@@ -510,15 +510,15 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">10</div>
+                        <div class="stat-value">30</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">~25</div>
+                        <div class="stat-value">~60</div>
                         <div class="stat-label">Minutes to Create</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">700+</div>
+                        <div class="stat-value">1600+</div>
                         <div class="stat-label">Lines of Code</div>
                     </div>
                     <div class="stat-item">
@@ -526,7 +526,7 @@
                         <div class="stat-label">Obstacle Designs Tried</div>
                     </div>
                 </div>
-                <p><strong>Features built:</strong> Mouse & cheese graphics, grid background, moving electric zappers, collision detection, level progression, score system, hit effects, confetti celebrations, and GitHub Pages deployment.</p>
+                <p><strong>Features built:</strong> Mouse & cheese graphics, grid background, moving electric zappers, collision detection, level progression, score system, electric shock effects, confetti celebrations, cheese eating animation, mobile touch controls, save/load progress, and GitHub Pages deployment.</p>
                 <p class="ai-note">Made with Claude Code - AI pair programming in the terminal.</p>
             </div>
             <button class="close-btn" id="closeAiStats">Cool!</button>
@@ -1296,22 +1296,24 @@
             newX = Math.max(mouse.size, Math.min(canvas.width - mouse.size, newX));
             newY = Math.max(mouse.size * 0.5, Math.min(canvas.height - mouse.size * 0.5, newY));
 
-            // Obstacle collision - zap on any contact
             mouse.x = newX;
             mouse.y = newY;
 
-            for (const obs of obstacles) {
-                if (checkCollision(mouse, obs)) {
-                    triggerHit();
-                    break;
-                }
-            }
-
+            // Check for win FIRST - reaching cheese takes precedence over getting zapped
             if (!isEating && checkWin()) {
                 isEating = true;
                 messageEl.textContent = 'Nom nom nom... Press SPACE for next level';
                 messageEl.style.color = '#2ecc71';
                 spawnConfetti();
+                return; // Skip collision check - player won!
+            }
+
+            // Obstacle collision - zap on any contact
+            for (const obs of obstacles) {
+                if (checkCollision(mouse, obs)) {
+                    triggerHit();
+                    break;
+                }
             }
 
             // Update countdown timer
