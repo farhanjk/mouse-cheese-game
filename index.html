@@ -636,6 +636,29 @@
             currentSize: CONFIG.cheese.size
         };
 
+        // ============== SAVE/LOAD ==============
+        function saveProgress() {
+            localStorage.setItem('mouseCheeseGame', JSON.stringify({
+                level: level,
+                score: score
+            }));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('mouseCheeseGame');
+            if (saved) {
+                const data = JSON.parse(saved);
+                state.level = level = data.level || 1;
+                state.score = score = data.score || 0;
+                levelEl.textContent = level;
+                scoreEl.textContent = score;
+            }
+        }
+
+        function clearProgress() {
+            localStorage.removeItem('mouseCheeseGame');
+        }
+
         // Legacy references for compatibility
         let obstacles = state.obstacles;
         let confetti = state.confetti;
@@ -1157,6 +1180,7 @@
             positionMouseAndCheese();
             generateObstacles();
             resetLevelState();
+            saveProgress();
         }
 
         function resetGame() {
@@ -1170,6 +1194,7 @@
             positionMouseAndCheese();
             generateObstacles();
             resetLevelState();
+            clearProgress();
 
             levelEl.textContent = state.level;
             scoreEl.textContent = state.score;
@@ -1576,6 +1601,8 @@
         });
 
         // Start game
+        loadProgress();
+        positionMouseAndCheese();
         generateObstacles();
         gameLoop();
     </script>
