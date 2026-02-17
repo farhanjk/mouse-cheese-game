@@ -554,7 +554,7 @@
         // ============== GAME CONFIG ==============
         const CONFIG = {
             // Timing
-            CONFIG.timeLimit: 30,
+            timeLimit: 30,
             hitFlashDecay: 0.03,
             timeUpFlashDecay: 0.03,
 
@@ -641,6 +641,16 @@
         let confetti = state.confetti;
         let keys = state.keys;
         let electricSparks = state.electricSparks;
+        let level = state.level;
+        let score = state.score;
+        let levelStartTime = state.levelStartTime;
+        let gameWon = state.gameWon;
+        let isHit = state.isHit;
+        let isEating = state.isEating;
+        let hitFlash = state.hitFlash;
+        let timeUpFlash = state.timeUpFlash;
+        let nibbleFrame = state.nibbleFrame;
+        let celebrationActive = state.celebrationActive;
 
         function drawMouse(x, y, size) {
             // Body
@@ -973,8 +983,6 @@
                 }
             }
         }
-
-        let electricSparks = [];
 
         function triggerHit() {
             state.isHit = isHit = true;
