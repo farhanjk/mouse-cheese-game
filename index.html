@@ -460,7 +460,7 @@
 </head>
 <body>
     <div class="main-wrapper">
-        <span class="version">v1.5.1</span>
+        <span class="version">v1.5.2-debug</span>
         <div class="game-container">
             <h1>Guide the Mouse to the Cheese!</h1>
             <p class="instructions">Use Arrow Keys to move</p>
@@ -1340,6 +1340,7 @@
             // Camera follows mouse (keep mouse roughly in center-left of screen)
             const targetCameraX = mouse.x - canvas.width * 0.3;
             camera.x = Math.max(0, Math.min(worldWidth - canvas.width, targetCameraX));
+            if (Math.random() < 0.01) console.log('Camera:', camera.x, 'Mouse:', mouse.x, 'WorldWidth:', worldWidth);
 
             // Check for win FIRST - reaching cheese takes precedence over getting zapped
             if (!isEating && checkWin()) {
