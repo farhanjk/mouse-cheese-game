@@ -460,7 +460,7 @@
 </head>
 <body>
     <div class="main-wrapper">
-        <span class="version">v1.6.0</span>
+        <span class="version">v1.6.1</span>
         <div class="game-container">
             <h1>Guide the Mouse to the Cheese!</h1>
             <p class="instructions">Use Arrow Keys to move</p>
@@ -1042,17 +1042,18 @@
         }
 
         function updateObstacles() {
+            const worldWidth = 1800;
             for (const obs of obstacles) {
                 // Update position
                 obs.x += obs.vx;
                 obs.y += obs.vy;
 
-                // Bounce off left and right edges
+                // Bounce off left and right edges (world bounds, not screen)
                 if (obs.x <= 0) {
                     obs.x = 0;
                     obs.vx = Math.abs(obs.vx);
-                } else if (obs.x + obs.width >= canvas.width) {
-                    obs.x = canvas.width - obs.width;
+                } else if (obs.x + obs.width >= worldWidth) {
+                    obs.x = worldWidth - obs.width;
                     obs.vx = -Math.abs(obs.vx);
                 }
 
