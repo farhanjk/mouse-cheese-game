@@ -527,7 +527,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">38</div>
+                        <div class="stat-value">39</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -993,46 +993,60 @@
             state.obstacles = obstacles;
             const cfg = CONFIG.obstacles;
             const worldWidth = CONFIG.world.width;
-            const numObstacles = (cfg.baseCount + level) * CONFIG.world.screens;
+            const numScreens = CONFIG.world.screens;
+            const screenWidth = canvas.width;
 
-            for (let i = 0; i < numObstacles; i++) {
-                let obs;
-                let attempts = 0;
-                let valid = false;
+            // More obstacles per screen as level increases
+            const obstaclesPerScreen = cfg.baseCount + state.level;
 
-                do {
-                    const moveHorizontal = Math.random() < 0.5;
-                    const speed = (cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed)) * (Math.random() < 0.5 ? 1 : -1);
-                    const sizeRange = cfg.maxSize - cfg.minSize;
-                    // Spread obstacles across the entire world, but not too close to start or end
-                    const startBuffer = 150;
-                    const endBuffer = 100;
-                    obs = {
-                        x: startBuffer + Math.random() * (worldWidth - startBuffer - endBuffer),
-                        y: 30 + Math.random() * (canvas.height - cfg.maxSize - 60),
-                        width: cfg.minSize + Math.random() * sizeRange * 0.5,
-                        height: cfg.minSize + Math.random() * sizeRange * 0.5,
-                        vx: moveHorizontal ? speed : 0,
-                        vy: moveHorizontal ? 0 : speed
-                    };
+            // Generate obstacles for each screen section
+            for (let screen = 0; screen < numScreens; screen++) {
+                const screenStartX = screen * screenWidth;
+                const screenEndX = screenStartX + screenWidth;
 
-                    // Don't spawn on mouse start area or cheese end area
-                    const notNearMouse = obs.x > 120 || obs.y > mouse.y + 50 || obs.y < mouse.y - 50;
-                    const notNearCheese = obs.x < cheese.x - 80;
-                    valid = notNearMouse && notNearCheese && !isMouseInObstaclePath(obs);
+                // Buffer zones: bigger at start of first screen, smaller elsewhere
+                const startBuffer = (screen === 0) ? 150 : 50;
+                const endBuffer = (screen === numScreens - 1) ? 150 : 50;
 
-                    // Check distance from other obstacles
-                    for (const existing of obstacles) {
-                        if (checkObstacleOverlap(obs, existing, cfg.minGap)) {
-                            valid = false;
-                            break;
+                for (let i = 0; i < obstaclesPerScreen; i++) {
+                    let obs;
+                    let attempts = 0;
+                    let valid = false;
+
+                    do {
+                        const moveHorizontal = Math.random() < 0.5;
+                        const baseSpeed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed);
+                        // Speed increases slightly with level
+                        const speed = baseSpeed * (1 + state.level * 0.1) * (Math.random() < 0.5 ? 1 : -1);
+                        const sizeRange = cfg.maxSize - cfg.minSize;
+
+                        obs = {
+                            x: screenStartX + startBuffer + Math.random() * (screenWidth - startBuffer - endBuffer),
+                            y: 30 + Math.random() * (canvas.height - cfg.maxSize - 60),
+                            width: cfg.minSize + Math.random() * sizeRange * 0.5,
+                            height: cfg.minSize + Math.random() * sizeRange * 0.5,
+                            vx: moveHorizontal ? speed : 0,
+                            vy: moveHorizontal ? 0 : speed
+                        };
+
+                        // Don't spawn too close to mouse start or cheese end
+                        const notNearMouse = obs.x > 120 || Math.abs(obs.y - mouse.y) > 60;
+                        const notNearCheese = obs.x < cheese.x - 100;
+                        valid = notNearMouse && notNearCheese;
+
+                        // Check distance from other obstacles (reduced gap for better spread)
+                        for (const existing of obstacles) {
+                            if (checkObstacleOverlap(obs, existing, 50)) {
+                                valid = false;
+                                break;
+                            }
                         }
-                    }
 
-                    attempts++;
-                } while (attempts < 50 && !valid);
+                        attempts++;
+                    } while (attempts < 30 && !valid);
 
-                if (valid) obstacles.push(obs);
+                    if (valid) obstacles.push(obs);
+                }
             }
         }
 
