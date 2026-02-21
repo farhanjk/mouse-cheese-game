@@ -527,7 +527,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">37</div>
+                        <div class="stat-value">38</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -577,9 +577,15 @@
         // ============== GAME CONFIG ==============
         const CONFIG = {
             // Timing
-            timeLimit: 30,
+            timeLimit: 60,
             hitFlashDecay: 0.03,
             timeUpFlashDecay: 0.03,
+
+            // World settings (scrolling level)
+            world: {
+                screens: 3,  // Number of screens to traverse
+                get width() { return canvas.width * this.screens; }
+            },
 
             // Mouse settings
             mouse: {
@@ -596,14 +602,12 @@
 
             // Obstacle settings
             obstacles: {
-                maxCount: 8,
+                baseCount: 4,      // Per screen
                 minSize: 40,
                 maxSize: 70,
                 minSpeed: 0.5,
                 maxSpeed: 1.5,
-                minGap: 80,
-                spawnMarginX: 120,
-                spawnMarginRight: 280
+                minGap: 80
             },
 
             // Visual effects
@@ -642,6 +646,12 @@
             confetti: [],
             electricSparks: [],
             obstacles: []
+        };
+
+        // ============== CAMERA ==============
+        const camera = {
+            x: 0,
+            y: 0
         };
 
         // ============== ENTITIES ==============
@@ -982,7 +992,8 @@
             obstacles = [];
             state.obstacles = obstacles;
             const cfg = CONFIG.obstacles;
-            const numObstacles = Math.min(state.level + 1, cfg.maxCount);
+            const worldWidth = CONFIG.world.width;
+            const numObstacles = (cfg.baseCount + level) * CONFIG.world.screens;
 
             for (let i = 0; i < numObstacles; i++) {
                 let obs;
@@ -993,16 +1004,22 @@
                     const moveHorizontal = Math.random() < 0.5;
                     const speed = (cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed)) * (Math.random() < 0.5 ? 1 : -1);
                     const sizeRange = cfg.maxSize - cfg.minSize;
+                    // Spread obstacles across the entire world, but not too close to start or end
+                    const startBuffer = 150;
+                    const endBuffer = 100;
                     obs = {
-                        x: cfg.spawnMarginX + Math.random() * (canvas.width - cfg.spawnMarginRight),
-                        y: Math.random() * (canvas.height - cfg.minSize),
+                        x: startBuffer + Math.random() * (worldWidth - startBuffer - endBuffer),
+                        y: 30 + Math.random() * (canvas.height - cfg.maxSize - 60),
                         width: cfg.minSize + Math.random() * sizeRange * 0.5,
                         height: cfg.minSize + Math.random() * sizeRange * 0.5,
                         vx: moveHorizontal ? speed : 0,
                         vy: moveHorizontal ? 0 : speed
                     };
 
-                    valid = !checkCollision(mouse, obs) && !checkCheeseCollision(obs) && !isMouseInObstaclePath(obs);
+                    // Don't spawn on mouse start area or cheese end area
+                    const notNearMouse = obs.x > 120 || obs.y > mouse.y + 50 || obs.y < mouse.y - 50;
+                    const notNearCheese = obs.x < cheese.x - 80;
+                    valid = notNearMouse && notNearCheese && !isMouseInObstaclePath(obs);
 
                     // Check distance from other obstacles
                     for (const existing of obstacles) {
@@ -1013,7 +1030,7 @@
                     }
 
                     attempts++;
-                } while (attempts < 100 && !valid);
+                } while (attempts < 50 && !valid);
 
                 if (valid) obstacles.push(obs);
             }
@@ -1079,6 +1096,7 @@
             levelLayout.mouseY = mouse.y;
             levelLayout.cheeseX = cheese.x;
             levelLayout.cheeseY = cheese.y;
+            levelLayout.cameraX = camera.x;
             // Deep copy obstacles
             levelLayout.obstacles = obstacles.map(obs => ({...obs}));
         }
@@ -1089,6 +1107,7 @@
             cheese.x = levelLayout.cheeseX;
             cheese.y = levelLayout.cheeseY;
             cheese.currentSize = cheese.size;
+            camera.x = levelLayout.cameraX || 0;
             // Deep copy obstacles back
             obstacles = levelLayout.obstacles.map(obs => ({...obs}));
             state.obstacles = obstacles;
@@ -1182,41 +1201,20 @@
         }
 
         function positionMouseAndCheese() {
-            const positions = CONFIG.spawnPositions;
+            const worldWidth = CONFIG.world.width;
 
-            // Pick random position for mouse
-            const mouseIdx = Math.floor(Math.random() * positions.length);
-            const mousePos = positions[mouseIdx];
+            // Mouse starts at the left side
+            mouse.x = 60;
+            mouse.y = canvas.height / 2;
 
-            // Find the farthest position for cheese
-            let maxDist = 0;
-            let cheesePos = positions[0];
-            for (const pos of positions) {
-                const dist = Math.sqrt(
-                    Math.pow(pos.x - mousePos.x, 2) +
-                    Math.pow(pos.y - mousePos.y, 2)
-                );
-                if (dist > maxDist) {
-                    maxDist = dist;
-                    cheesePos = pos;
-                }
-            }
-
-            // Add some randomness to cheese position
-            cheesePos = {
-                x: cheesePos.x + (Math.random() - 0.5) * 60,
-                y: cheesePos.y + (Math.random() - 0.5) * 60
-            };
-
-            // Keep cheese within bounds
-            cheesePos.x = Math.max(40, Math.min(canvas.width - 40, cheesePos.x));
-            cheesePos.y = Math.max(40, Math.min(canvas.height - 40, cheesePos.y));
-
-            mouse.x = mousePos.x;
-            mouse.y = mousePos.y;
-            cheese.x = cheesePos.x;
-            cheese.y = cheesePos.y;
+            // Cheese is at the far right end of the world
+            cheese.x = worldWidth - 60;
+            cheese.y = 50 + Math.random() * (canvas.height - 100);
             cheese.currentSize = cheese.size;
+
+            // Reset camera to start
+            camera.x = 0;
+            camera.y = 0;
         }
 
         // Helper to reset level state
@@ -1322,12 +1320,17 @@
             if (keys['ArrowLeft'] || keys['KeyA']) newX -= mouse.speed;
             if (keys['ArrowRight'] || keys['KeyD']) newX += mouse.speed;
 
-            // Boundary check
-            newX = Math.max(mouse.size, Math.min(canvas.width - mouse.size, newX));
+            // Boundary check (world bounds, not screen bounds)
+            const worldWidth = CONFIG.world.width;
+            newX = Math.max(mouse.size, Math.min(worldWidth - mouse.size, newX));
             newY = Math.max(mouse.size * 0.5, Math.min(canvas.height - mouse.size * 0.5, newY));
 
             mouse.x = newX;
             mouse.y = newY;
+
+            // Camera follows mouse (keep mouse roughly in center-left of screen)
+            const targetCameraX = mouse.x - canvas.width * 0.3;
+            camera.x = Math.max(0, Math.min(worldWidth - canvas.width, targetCameraX));
 
             // Check for win FIRST - reaching cheese takes precedence over getting zapped
             if (!isEating && checkWin()) {
@@ -1388,13 +1391,14 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw subtle grid
+            // Draw subtle grid (scrolls with camera)
             const gridSize = 40;
             ctx.strokeStyle = 'rgba(60, 80, 120, 0.3)';
             ctx.lineWidth = 1;
 
-            // Vertical lines
-            for (let x = 0; x <= canvas.width; x += gridSize) {
+            // Vertical lines (offset by camera)
+            const gridOffsetX = camera.x % gridSize;
+            for (let x = -gridOffsetX; x <= canvas.width; x += gridSize) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, canvas.height);
@@ -1409,33 +1413,55 @@
                 ctx.stroke();
             }
 
-            // Corner vignettes for depth
-            const vignetteGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 150);
-            vignetteGradient.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
-            vignetteGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = vignetteGradient;
-            ctx.fillRect(0, 0, 150, 150);
-
-            const vignetteGradient2 = ctx.createRadialGradient(canvas.width, canvas.height, 0, canvas.width, canvas.height, 150);
-            vignetteGradient2.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
-            vignetteGradient2.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = vignetteGradient2;
-            ctx.fillRect(canvas.width - 150, canvas.height - 150, 150, 150);
-
-            // Draw obstacles
-            obstacles.forEach(drawObstacle);
-
-            // Draw cheese (use currentSize for eating animation)
-            if (cheese.currentSize > 5) {
-                drawCheese(cheese.x, cheese.y, cheese.currentSize);
+            // Draw obstacles (offset by camera)
+            for (const obs of obstacles) {
+                const screenX = obs.x - camera.x;
+                // Only draw if on screen
+                if (screenX + obs.width > 0 && screenX < canvas.width) {
+                    drawObstacle({...obs, x: screenX});
+                }
             }
 
-            // Draw mouse (with nibble animation if eating)
+            // Draw cheese (offset by camera)
+            const cheeseScreenX = cheese.x - camera.x;
+            if (cheese.currentSize > 5 && cheeseScreenX > -50 && cheeseScreenX < canvas.width + 50) {
+                drawCheese(cheeseScreenX, cheese.y, cheese.currentSize);
+            }
+
+            // Draw mouse (offset by camera)
+            const mouseScreenX = mouse.x - camera.x;
             if (isEating) {
-                drawEatingMouse(mouse.x, mouse.y, mouse.size, nibbleFrame);
+                drawEatingMouse(mouseScreenX, mouse.y, mouse.size, nibbleFrame);
             } else {
-                drawMouse(mouse.x, mouse.y, mouse.size);
+                drawMouse(mouseScreenX, mouse.y, mouse.size);
             }
+
+            // Draw progress bar at top
+            const worldWidth = CONFIG.world.width;
+            const progress = mouse.x / worldWidth;
+            const barWidth = canvas.width - 40;
+            const barHeight = 8;
+            const barY = 10;
+
+            // Bar background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(20, barY, barWidth, barHeight);
+
+            // Progress fill
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillRect(20, barY, barWidth * progress, barHeight);
+
+            // Cheese icon at end
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(20 + barWidth, barY + barHeight / 2, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mouse icon showing position
+            ctx.fillStyle = '#808080';
+            ctx.beginPath();
+            ctx.arc(20 + barWidth * progress, barY + barHeight / 2, 5, 0, Math.PI * 2);
+            ctx.fill();
 
             // Draw electric shock effect
             if (hitFlash > 0) {
@@ -1450,9 +1476,10 @@
                 ctx.shadowColor = '#00FFFF';
                 ctx.shadowBlur = 20;
 
+                const mouseDrawX = mouse.x - camera.x;
                 for (let i = 0; i < 8; i++) {
                     const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.3;
-                    let x = mouse.x;
+                    let x = mouseDrawX;
                     let y = mouse.y;
                     const length = 40 + (1 - hitFlash) * 60;
 
@@ -1475,15 +1502,15 @@
                     ctx.lineWidth = 2;
                     // Skeleton body
                     ctx.beginPath();
-                    ctx.moveTo(mouse.x - 15, mouse.y);
-                    ctx.lineTo(mouse.x + 15, mouse.y);
-                    ctx.moveTo(mouse.x, mouse.y - 10);
-                    ctx.lineTo(mouse.x, mouse.y + 10);
+                    ctx.moveTo(mouseDrawX - 15, mouse.y);
+                    ctx.lineTo(mouseDrawX + 15, mouse.y);
+                    ctx.moveTo(mouseDrawX, mouse.y - 10);
+                    ctx.lineTo(mouseDrawX, mouse.y + 10);
                     // Skeleton ribs
-                    ctx.moveTo(mouse.x - 8, mouse.y - 5);
-                    ctx.lineTo(mouse.x + 8, mouse.y - 5);
-                    ctx.moveTo(mouse.x - 8, mouse.y + 5);
-                    ctx.lineTo(mouse.x + 8, mouse.y + 5);
+                    ctx.moveTo(mouseDrawX - 8, mouse.y - 5);
+                    ctx.lineTo(mouseDrawX + 8, mouse.y - 5);
+                    ctx.moveTo(mouseDrawX - 8, mouse.y + 5);
+                    ctx.lineTo(mouseDrawX + 8, mouse.y + 5);
                     ctx.stroke();
                 }
 
@@ -1492,17 +1519,18 @@
                 // Draw electric sparks
                 for (const spark of electricSparks) {
                     if (spark.life > 0) {
+                        const sparkDrawX = spark.x - camera.x;
                         ctx.fillStyle = `rgba(255, 255, 255, ${spark.life})`;
                         ctx.beginPath();
-                        ctx.arc(spark.x, spark.y, 3, 0, Math.PI * 2);
+                        ctx.arc(sparkDrawX, spark.y, 3, 0, Math.PI * 2);
                         ctx.fill();
 
                         // Mini lightning from spark
                         ctx.strokeStyle = `rgba(0, 255, 255, ${spark.life})`;
                         ctx.lineWidth = 1;
                         ctx.beginPath();
-                        ctx.moveTo(spark.x, spark.y);
-                        ctx.lineTo(spark.x + (Math.random() - 0.5) * 10, spark.y + (Math.random() - 0.5) * 10);
+                        ctx.moveTo(sparkDrawX, spark.y);
+                        ctx.lineTo(sparkDrawX + (Math.random() - 0.5) * 10, spark.y + (Math.random() - 0.5) * 10);
                         ctx.stroke();
                     }
                 }
