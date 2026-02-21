@@ -437,6 +437,14 @@
             }
         }
 
+        .version {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+        }
+
         @media (max-width: 400px) {
             h1 {
                 font-size: 16px;
@@ -452,6 +460,7 @@
 </head>
 <body>
     <div class="main-wrapper">
+        <span class="version">v1.4.0</span>
         <div class="game-container">
             <h1>Guide the Mouse to the Cheese!</h1>
             <p class="instructions">Use Arrow Keys to move</p>
@@ -527,7 +536,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">39</div>
+                        <div class="stat-value">40</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
