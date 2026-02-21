@@ -460,7 +460,7 @@
 </head>
 <body>
     <div class="main-wrapper">
-        <span class="version">v1.4.0</span>
+        <span class="version">v1.4.1</span>
         <div class="game-container">
             <h1>Guide the Mouse to the Cheese!</h1>
             <p class="instructions">Use Arrow Keys to move</p>
@@ -536,7 +536,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">40</div>
+                        <div class="stat-value">41</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -1001,9 +1001,9 @@
             obstacles = [];
             state.obstacles = obstacles;
             const cfg = CONFIG.obstacles;
-            const worldWidth = CONFIG.world.width;
             const numScreens = CONFIG.world.screens;
             const screenWidth = canvas.width;
+            const worldWidth = screenWidth * numScreens;
 
             // More obstacles per screen as level increases
             const obstaclesPerScreen = cfg.baseCount + state.level;
@@ -1011,52 +1011,31 @@
             // Generate obstacles for each screen section
             for (let screen = 0; screen < numScreens; screen++) {
                 const screenStartX = screen * screenWidth;
-                const screenEndX = screenStartX + screenWidth;
 
-                // Buffer zones: bigger at start of first screen, smaller elsewhere
-                const startBuffer = (screen === 0) ? 150 : 50;
-                const endBuffer = (screen === numScreens - 1) ? 150 : 50;
+                // Buffer zones
+                const leftBuffer = (screen === 0) ? 150 : 30;
+                const rightBuffer = (screen === numScreens - 1) ? 150 : 30;
+                const spawnWidth = screenWidth - leftBuffer - rightBuffer;
 
                 for (let i = 0; i < obstaclesPerScreen; i++) {
-                    let obs;
-                    let attempts = 0;
-                    let valid = false;
+                    const moveHorizontal = Math.random() < 0.5;
+                    const baseSpeed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed);
+                    const speed = baseSpeed * (1 + state.level * 0.1) * (Math.random() < 0.5 ? 1 : -1);
+                    const sizeRange = cfg.maxSize - cfg.minSize;
 
-                    do {
-                        const moveHorizontal = Math.random() < 0.5;
-                        const baseSpeed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed);
-                        // Speed increases slightly with level
-                        const speed = baseSpeed * (1 + state.level * 0.1) * (Math.random() < 0.5 ? 1 : -1);
-                        const sizeRange = cfg.maxSize - cfg.minSize;
+                    const obs = {
+                        x: screenStartX + leftBuffer + Math.random() * spawnWidth,
+                        y: 40 + Math.random() * (canvas.height - cfg.maxSize - 80),
+                        width: cfg.minSize + Math.random() * sizeRange * 0.5,
+                        height: cfg.minSize + Math.random() * sizeRange * 0.5,
+                        vx: moveHorizontal ? speed : 0,
+                        vy: moveHorizontal ? 0 : speed
+                    };
 
-                        obs = {
-                            x: screenStartX + startBuffer + Math.random() * (screenWidth - startBuffer - endBuffer),
-                            y: 30 + Math.random() * (canvas.height - cfg.maxSize - 60),
-                            width: cfg.minSize + Math.random() * sizeRange * 0.5,
-                            height: cfg.minSize + Math.random() * sizeRange * 0.5,
-                            vx: moveHorizontal ? speed : 0,
-                            vy: moveHorizontal ? 0 : speed
-                        };
-
-                        // Don't spawn too close to mouse start or cheese end
-                        const notNearMouse = obs.x > 120 || Math.abs(obs.y - mouse.y) > 60;
-                        const notNearCheese = obs.x < cheese.x - 100;
-                        valid = notNearMouse && notNearCheese;
-
-                        // Check distance from other obstacles (reduced gap for better spread)
-                        for (const existing of obstacles) {
-                            if (checkObstacleOverlap(obs, existing, 50)) {
-                                valid = false;
-                                break;
-                            }
-                        }
-
-                        attempts++;
-                    } while (attempts < 30 && !valid);
-
-                    if (valid) obstacles.push(obs);
+                    obstacles.push(obs);
                 }
             }
+            state.obstacles = obstacles;
         }
 
         function updateObstacles() {
