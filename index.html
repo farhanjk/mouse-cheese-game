@@ -460,7 +460,7 @@
 </head>
 <body>
     <div class="main-wrapper">
-        <span class="version">v1.5.0</span>
+        <span class="version">v1.4.2-debug</span>
         <div class="game-container">
             <h1>Guide the Mouse to the Cheese!</h1>
             <p class="instructions">Use Arrow Keys to move</p>
@@ -536,7 +536,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">42</div>
+                        <div class="stat-value">41</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -1008,6 +1008,7 @@
             // More obstacles per screen as level increases
             const obstaclesPerScreen = cfg.baseCount + state.level;
 
+            console.log('Generating obstacles:', numScreens, 'screens,', obstaclesPerScreen, 'per screen');
 
             // Generate obstacles for each screen section
             for (let screen = 0; screen < numScreens; screen++) {
@@ -1018,6 +1019,7 @@
                 const rightBuffer = (screen === numScreens - 1) ? 150 : 30;
                 const spawnWidth = screenWidth - leftBuffer - rightBuffer;
 
+                console.log('Screen', screen, ': startX=', screenStartX, 'spawnWidth=', spawnWidth);
 
                 for (let i = 0; i < obstaclesPerScreen; i++) {
                     const moveHorizontal = Math.random() < 0.5;
@@ -1035,10 +1037,12 @@
                         vy: moveHorizontal ? 0 : speed
                     };
 
+                    console.log('  Obstacle', i, 'at x=', obsX.toFixed(0));
                     obstacles.push(obs);
                 }
             }
             state.obstacles = obstacles;
+            console.log('Total obstacles:', obstacles.length);
         }
 
         function updateObstacles() {
@@ -1334,7 +1338,6 @@
             mouse.y = newY;
 
             // Camera follows mouse (keep mouse roughly in center-left of screen)
-            const worldWidth = 1800; // 3 screens * 600
             const targetCameraX = mouse.x - canvas.width * 0.3;
             camera.x = Math.max(0, Math.min(worldWidth - canvas.width, targetCameraX));
 
