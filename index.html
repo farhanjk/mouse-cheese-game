@@ -460,7 +460,7 @@
 </head>
 <body>
     <div class="main-wrapper">
-        <span class="version">v1.7.0</span>
+        <span class="version">v1.6.1</span>
         <div class="game-container">
             <h1>Guide the Mouse to the Cheese!</h1>
             <p class="instructions">Use Arrow Keys to move</p>
@@ -536,7 +536,7 @@
                 <p>This game was created through a conversation with Claude (Opus 4.5), Anthropic's AI assistant.</p>
                 <div class="stat-grid">
                     <div class="stat-item">
-                        <div class="stat-value">46</div>
+                        <div class="stat-value">45</div>
                         <div class="stat-label">Prompts Exchanged</div>
                     </div>
                     <div class="stat-item">
@@ -1076,11 +1076,8 @@
         function triggerHit() {
             state.isHit = isHit = true;
             state.hitFlash = hitFlash = 1;
-            messageEl.textContent = 'ZZZAP! -5 seconds!';
+            messageEl.textContent = 'ZZZAP! Restarting level...';
             messageEl.style.color = '#00FFFF';
-
-            // Apply 5 second time penalty
-            state.levelStartTime = levelStartTime -= 5000;
 
             // Create electric sparks
             electricSparks = [];
@@ -1095,12 +1092,9 @@
                 });
             }
 
-            // Recover after brief stun
             setTimeout(() => {
-                isHit = false;
-                state.isHit = false;
-                messageEl.textContent = '';
-            }, 500);
+                restartLevel();
+            }, 1000);
         }
 
         function saveLevelLayout() {
