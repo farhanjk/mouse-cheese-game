@@ -689,42 +689,38 @@
 
         // ============== SAVE/LOAD ==============
         function saveProgress() {
-            localStorage.setItem('mouseCheeseGame', JSON.stringify({
-                level: level,
-                score: score
-            }));
+            try {
+                localStorage.setItem('mouseCheeseGame', JSON.stringify({
+                    level: state.level,
+                    score: state.score
+                }));
+            } catch (e) {
+                // localStorage may be unavailable in private browsing
+            }
         }
 
         function loadProgress() {
-            const saved = localStorage.getItem('mouseCheeseGame');
-            if (saved) {
-                const data = JSON.parse(saved);
-                state.level = level = data.level || 1;
-                state.score = score = data.score || 0;
-                levelEl.textContent = level;
-                scoreEl.textContent = score;
+            try {
+                const saved = localStorage.getItem('mouseCheeseGame');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    state.level = data.level || 1;
+                    state.score = data.score || 0;
+                    levelEl.textContent = state.level;
+                    scoreEl.textContent = state.score;
+                }
+            } catch (e) {
+                // localStorage may be unavailable in private browsing
             }
         }
 
         function clearProgress() {
-            localStorage.removeItem('mouseCheeseGame');
+            try {
+                localStorage.removeItem('mouseCheeseGame');
+            } catch (e) {
+                // localStorage may be unavailable in private browsing
+            }
         }
-
-        // Legacy references for compatibility
-        let obstacles = state.obstacles;
-        let confetti = state.confetti;
-        let keys = state.keys;
-        let electricSparks = state.electricSparks;
-        let level = state.level;
-        let score = state.score;
-        let levelStartTime = state.levelStartTime;
-        let gameWon = state.gameWon;
-        let isHit = state.isHit;
-        let isEating = state.isEating;
-        let hitFlash = state.hitFlash;
-        let timeUpFlash = state.timeUpFlash;
-        let nibbleFrame = state.nibbleFrame;
-        let celebrationActive = state.celebrationActive;
 
         function drawMouse(x, y, size) {
             // Body
@@ -998,16 +994,13 @@
         }
 
         function generateObstacles() {
-            obstacles = [];
-            state.obstacles = obstacles;
+            state.obstacles = [];
             const cfg = CONFIG.obstacles;
-            const numScreens = 3;  // Hardcoded to be sure
-            const screenWidth = 600;  // Hardcoded canvas width
-            const worldWidth = 1800;  // 3 screens
+            const numScreens = CONFIG.world.screens;
+            const screenWidth = canvas.width;
 
             // More obstacles per screen as level increases
             const obstaclesPerScreen = cfg.baseCount + state.level;
-
 
             // Generate obstacles for each screen section
             for (let screen = 0; screen < numScreens; screen++) {
@@ -1018,7 +1011,6 @@
                 const rightBuffer = (screen === numScreens - 1) ? 150 : 30;
                 const spawnWidth = screenWidth - leftBuffer - rightBuffer;
 
-
                 for (let i = 0; i < obstaclesPerScreen; i++) {
                     const moveHorizontal = Math.random() < 0.5;
                     const baseSpeed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed);
@@ -1026,7 +1018,7 @@
                     const sizeRange = cfg.maxSize - cfg.minSize;
 
                     const obsX = screenStartX + leftBuffer + Math.random() * spawnWidth;
-                    const obs = {
+                    const obstacle = {
                         x: obsX,
                         y: 40 + Math.random() * (canvas.height - cfg.maxSize - 80),
                         width: cfg.minSize + Math.random() * sizeRange * 0.5,
@@ -1035,55 +1027,53 @@
                         vy: moveHorizontal ? 0 : speed
                     };
 
-                    obstacles.push(obs);
+                    state.obstacles.push(obstacle);
                 }
             }
-            state.obstacles = obstacles;
         }
 
         function updateObstacles() {
-            const worldWidth = 1800;
-            for (const obs of obstacles) {
+            const worldWidth = CONFIG.world.width;
+            for (const obstacle of state.obstacles) {
                 // Update position
-                obs.x += obs.vx;
-                obs.y += obs.vy;
+                obstacle.x += obstacle.vx;
+                obstacle.y += obstacle.vy;
 
                 // Bounce off left and right edges (world bounds, not screen)
-                if (obs.x <= 0) {
-                    obs.x = 0;
-                    obs.vx = Math.abs(obs.vx);
-                } else if (obs.x + obs.width >= worldWidth) {
-                    obs.x = worldWidth - obs.width;
-                    obs.vx = -Math.abs(obs.vx);
+                if (obstacle.x <= 0) {
+                    obstacle.x = 0;
+                    obstacle.vx = Math.abs(obstacle.vx);
+                } else if (obstacle.x + obstacle.width >= worldWidth) {
+                    obstacle.x = worldWidth - obstacle.width;
+                    obstacle.vx = -Math.abs(obstacle.vx);
                 }
 
                 // Bounce off top and bottom edges
-                if (obs.y <= 0) {
-                    obs.y = 0;
-                    obs.vy = Math.abs(obs.vy);
-                } else if (obs.y + obs.height >= canvas.height) {
-                    obs.y = canvas.height - obs.height;
-                    obs.vy = -Math.abs(obs.vy);
+                if (obstacle.y <= 0) {
+                    obstacle.y = 0;
+                    obstacle.vy = Math.abs(obstacle.vy);
+                } else if (obstacle.y + obstacle.height >= canvas.height) {
+                    obstacle.y = canvas.height - obstacle.height;
+                    obstacle.vy = -Math.abs(obstacle.vy);
                 }
 
                 // Check if obstacle hits mouse
-                if (!isHit && checkCollision(mouse, obs)) {
+                if (!state.isHit && checkCollision(mouse, obstacle)) {
                     triggerHit();
                 }
             }
         }
 
         function triggerHit() {
-            state.isHit = isHit = true;
-            state.hitFlash = hitFlash = 1;
+            state.isHit = true;
+            state.hitFlash = 1;
             messageEl.textContent = 'ZZZAP! Restarting level...';
             messageEl.style.color = '#00FFFF';
 
             // Create electric sparks
-            electricSparks = [];
-            state.electricSparks = electricSparks;
+            state.electricSparks = [];
             for (let i = 0; i < CONFIG.effects.sparkCount; i++) {
-                electricSparks.push({
+                state.electricSparks.push({
                     x: mouse.x,
                     y: mouse.y,
                     vx: (Math.random() - 0.5) * 12,
@@ -1104,7 +1094,7 @@
             levelLayout.cheeseY = cheese.y;
             levelLayout.cameraX = camera.x;
             // Deep copy obstacles
-            levelLayout.obstacles = obstacles.map(obs => ({...obs}));
+            levelLayout.obstacles = state.obstacles.map(obstacle => ({...obstacle}));
         }
 
         function restoreLevelLayout() {
@@ -1115,18 +1105,17 @@
             cheese.currentSize = cheese.size;
             camera.x = levelLayout.cameraX || 0;
             // Deep copy obstacles back
-            obstacles = levelLayout.obstacles.map(obs => ({...obs}));
-            state.obstacles = obstacles;
+            state.obstacles = levelLayout.obstacles.map(obstacle => ({...obstacle}));
         }
 
         function restartLevel() {
             // Restore the saved layout instead of generating new one
             restoreLevelLayout();
-            isHit = false;
-            hitFlash = 0;
-            timeUpFlash = 0;
-            electricSparks = [];
-            state.levelStartTime = levelStartTime = Date.now();
+            state.isHit = false;
+            state.hitFlash = 0;
+            state.timeUpFlash = 0;
+            state.electricSparks = [];
+            state.levelStartTime = Date.now();
             messageEl.textContent = '';
             timeEl.parentElement.classList.remove('time-warning');
         }
@@ -1153,11 +1142,10 @@
         }
 
         function spawnConfetti() {
-            confetti = [];
-            state.confetti = confetti;
+            state.confetti = [];
             const colors = CONFIG.effects.colors;
             for (let i = 0; i < CONFIG.effects.confettiCount; i++) {
-                confetti.push({
+                state.confetti.push({
                     x: Math.random() * canvas.width,
                     y: -20 - Math.random() * 200,
                     vx: (Math.random() - 0.5) * 4,
@@ -1170,11 +1158,10 @@
                 });
             }
             state.celebrationActive = true;
-            celebrationActive = true;
         }
 
         function updateConfetti() {
-            for (const c of confetti) {
+            for (const c of state.confetti) {
                 c.x += c.vx;
                 c.y += c.vy;
                 c.rotation += c.rotationSpeed;
@@ -1182,14 +1169,14 @@
                 c.vx *= 0.99; // air resistance
             }
             // Remove confetti that fell off screen
-            confetti = confetti.filter(c => c.y < canvas.height + 50);
-            if (confetti.length === 0) {
-                celebrationActive = false;
+            state.confetti = state.confetti.filter(c => c.y < canvas.height + 50);
+            if (state.confetti.length === 0) {
+                state.celebrationActive = false;
             }
         }
 
         function drawConfetti() {
-            for (const c of confetti) {
+            for (const c of state.confetti) {
                 ctx.save();
                 ctx.translate(c.x, c.y);
                 ctx.rotate(c.rotation);
@@ -1225,25 +1212,25 @@
 
         // Helper to reset level state
         function resetLevelState() {
-            state.gameWon = gameWon = false;
-            state.isEating = isEating = false;
-            state.isHit = isHit = false;
-            state.hitFlash = hitFlash = 0;
-            state.timeUpFlash = timeUpFlash = 0;
-            state.nibbleFrame = nibbleFrame = 0;
-            state.celebrationActive = celebrationActive = false;
-            state.confetti = confetti = [];
-            state.electricSparks = electricSparks = [];
-            state.levelStartTime = levelStartTime = Date.now();
+            state.gameWon = false;
+            state.isEating = false;
+            state.isHit = false;
+            state.hitFlash = 0;
+            state.timeUpFlash = 0;
+            state.nibbleFrame = 0;
+            state.celebrationActive = false;
+            state.confetti = [];
+            state.electricSparks = [];
+            state.levelStartTime = Date.now();
             messageEl.textContent = '';
             timeEl.parentElement.classList.remove('time-warning');
             nextLevelBtn.disabled = true;
         }
 
         function nextLevel() {
-            state.level = ++level;
+            state.level++;
             levelEl.textContent = state.level;
-            state.score = score += 100 + state.level * 10;
+            state.score += 100 + state.level * 10;
             scoreEl.textContent = state.score;
 
             positionMouseAndCheese();
@@ -1254,8 +1241,8 @@
         }
 
         function resetGame() {
-            state.level = level = 1;
-            state.score = score = 0;
+            state.level = 1;
+            state.score = 0;
             mouse.size = CONFIG.mouse.size;
             mouse.speed = CONFIG.mouse.speed;
             cheese.size = CONFIG.cheese.size;
@@ -1277,11 +1264,11 @@
             zapperPhase += 0.1;
 
             // Decay hit flash and update sparks
-            if (hitFlash > 0) {
-                state.hitFlash = hitFlash -= CONFIG.hitFlashDecay;
+            if (state.hitFlash > 0) {
+                state.hitFlash -= CONFIG.hitFlashDecay;
 
                 // Update electric sparks
-                for (const spark of electricSparks) {
+                for (const spark of state.electricSparks) {
                     spark.x += spark.vx;
                     spark.y += spark.vy;
                     spark.life -= 0.03;
@@ -1291,18 +1278,18 @@
             }
 
             // Decay time up flash
-            if (timeUpFlash > 0) {
-                state.timeUpFlash = timeUpFlash -= CONFIG.timeUpFlashDecay;
+            if (state.timeUpFlash > 0) {
+                state.timeUpFlash -= CONFIG.timeUpFlashDecay;
             }
 
             // Update confetti
-            if (celebrationActive) {
+            if (state.celebrationActive) {
                 updateConfetti();
             }
 
             // Update eating animation
-            if (isEating && !gameWon) {
-                state.nibbleFrame = nibbleFrame += 0.3;
+            if (state.isEating && !state.gameWon) {
+                state.nibbleFrame += 0.3;
                 // Slowly shrink the cheese
                 if (cheese.currentSize > CONFIG.cheese.minSize) {
                     cheese.currentSize -= CONFIG.cheese.shrinkRate;
@@ -1312,19 +1299,19 @@
                 mouse.y = cheese.y;
             }
 
-            if (!gameWon && !isHit && !isEating) {
+            if (!state.gameWon && !state.isHit && !state.isEating) {
                 updateObstacles();
             }
 
-            if (gameWon || isHit || isEating) return;
+            if (state.gameWon || state.isHit || state.isEating) return;
 
             let newX = mouse.x;
             let newY = mouse.y;
 
-            if (keys['ArrowUp'] || keys['KeyW']) newY -= mouse.speed;
-            if (keys['ArrowDown'] || keys['KeyS']) newY += mouse.speed;
-            if (keys['ArrowLeft'] || keys['KeyA']) newX -= mouse.speed;
-            if (keys['ArrowRight'] || keys['KeyD']) newX += mouse.speed;
+            if (state.keys['ArrowUp'] || state.keys['KeyW']) newY -= mouse.speed;
+            if (state.keys['ArrowDown'] || state.keys['KeyS']) newY += mouse.speed;
+            if (state.keys['ArrowLeft'] || state.keys['KeyA']) newX -= mouse.speed;
+            if (state.keys['ArrowRight'] || state.keys['KeyD']) newX += mouse.speed;
 
             // Boundary check (world bounds, not screen bounds)
             const worldWidth = CONFIG.world.width;
@@ -1339,8 +1326,8 @@
             camera.x = Math.max(0, Math.min(worldWidth - canvas.width, targetCameraX));
 
             // Check for win FIRST - reaching cheese takes precedence over getting zapped
-            if (!isEating && checkWin()) {
-                isEating = true;
+            if (!state.isEating && checkWin()) {
+                state.isEating = true;
                 messageEl.textContent = 'Nom nom nom... Press SPACE for next level';
                 messageEl.style.color = '#2ecc71';
                 nextLevelBtn.disabled = false;
@@ -1349,15 +1336,15 @@
             }
 
             // Obstacle collision - zap on any contact
-            for (const obs of obstacles) {
-                if (checkCollision(mouse, obs)) {
+            for (const obstacle of state.obstacles) {
+                if (checkCollision(mouse, obstacle)) {
                     triggerHit();
                     break;
                 }
             }
 
             // Update countdown timer
-            const elapsed = Math.floor((Date.now() - levelStartTime) / 1000);
+            const elapsed = Math.floor((Date.now() - state.levelStartTime) / 1000);
             const remaining = Math.max(0, CONFIG.timeLimit - elapsed);
             timeEl.textContent = remaining;
 
@@ -1369,14 +1356,14 @@
             }
 
             // Time's up!
-            if (remaining === 0 && !isEating) {
+            if (remaining === 0 && !state.isEating) {
                 triggerTimeUp();
             }
         }
 
         function triggerTimeUp() {
-            isHit = true;
-            timeUpFlash = 1;
+            state.isHit = true;
+            state.timeUpFlash = 1;
             messageEl.textContent = "Time's up! Restarting level...";
             messageEl.style.color = '#e74c3c';
 
@@ -1420,11 +1407,11 @@
             }
 
             // Draw obstacles (offset by camera)
-            for (const obs of obstacles) {
-                const screenX = obs.x - camera.x;
+            for (const obstacle of state.obstacles) {
+                const screenX = obstacle.x - camera.x;
                 // Only draw if on screen
-                if (screenX + obs.width > 0 && screenX < canvas.width) {
-                    drawObstacle({...obs, x: screenX});
+                if (screenX + obstacle.width > 0 && screenX < canvas.width) {
+                    drawObstacle({...obstacle, x: screenX});
                 }
             }
 
@@ -1436,8 +1423,8 @@
 
             // Draw mouse (offset by camera)
             const mouseScreenX = mouse.x - camera.x;
-            if (isEating) {
-                drawEatingMouse(mouseScreenX, mouse.y, mouse.size, nibbleFrame);
+            if (state.isEating) {
+                drawEatingMouse(mouseScreenX, mouse.y, mouse.size, state.nibbleFrame);
             } else {
                 drawMouse(mouseScreenX, mouse.y, mouse.size);
             }
@@ -1470,14 +1457,14 @@
             ctx.fill();
 
             // Draw electric shock effect
-            if (hitFlash > 0) {
+            if (state.hitFlash > 0) {
                 // Flickering cyan overlay
                 const flicker = Math.random() > 0.5 ? 1 : 0.5;
-                ctx.fillStyle = `rgba(0, 255, 255, ${hitFlash * 0.3 * flicker})`;
+                ctx.fillStyle = `rgba(0, 255, 255, ${state.hitFlash * 0.3 * flicker})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 // Draw lightning bolts from mouse
-                ctx.strokeStyle = `rgba(0, 255, 255, ${hitFlash})`;
+                ctx.strokeStyle = `rgba(0, 255, 255, ${state.hitFlash})`;
                 ctx.lineWidth = 3;
                 ctx.shadowColor = '#00FFFF';
                 ctx.shadowBlur = 20;
@@ -1487,7 +1474,7 @@
                     const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.3;
                     let x = mouseDrawX;
                     let y = mouse.y;
-                    const length = 40 + (1 - hitFlash) * 60;
+                    const length = 40 + (1 - state.hitFlash) * 60;
 
                     ctx.beginPath();
                     ctx.moveTo(x, y);
@@ -1504,7 +1491,7 @@
 
                 // Draw skeleton effect on mouse (flashing bones)
                 if (Math.random() > 0.3) {
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${hitFlash})`;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${state.hitFlash})`;
                     ctx.lineWidth = 2;
                     // Skeleton body
                     ctx.beginPath();
@@ -1523,7 +1510,7 @@
                 ctx.shadowBlur = 0;
 
                 // Draw electric sparks
-                for (const spark of electricSparks) {
+                for (const spark of state.electricSparks) {
                     if (spark.life > 0) {
                         const sparkDrawX = spark.x - camera.x;
                         ctx.fillStyle = `rgba(255, 255, 255, ${spark.life})`;
@@ -1543,13 +1530,13 @@
             }
 
             // Draw time up flash effect
-            if (timeUpFlash > 0) {
+            if (state.timeUpFlash > 0) {
                 const flicker = Math.random() > 0.5 ? 1 : 0.7;
-                ctx.fillStyle = `rgba(231, 76, 60, ${timeUpFlash * 0.5 * flicker})`;
+                ctx.fillStyle = `rgba(231, 76, 60, ${state.timeUpFlash * 0.5 * flicker})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 // Draw clock icon in center
-                ctx.strokeStyle = `rgba(255, 255, 255, ${timeUpFlash})`;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${state.timeUpFlash})`;
                 ctx.lineWidth = 4;
                 ctx.beginPath();
                 ctx.arc(canvas.width / 2, canvas.height / 2, 40, 0, Math.PI * 2);
@@ -1565,7 +1552,7 @@
             }
 
             // Draw confetti celebration
-            if (celebrationActive) {
+            if (state.celebrationActive) {
                 drawConfetti();
             }
         }
@@ -1578,8 +1565,8 @@
 
         // Event listeners
         document.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.code === 'Space' && isEating) {
+            state.keys[e.code] = true;
+            if (e.code === 'Space' && state.isEating) {
                 // Go directly to next level
                 nextLevel();
             }
@@ -1589,7 +1576,7 @@
         });
 
         document.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
+            state.keys[e.code] = false;
         });
 
         // Restart confirmation
@@ -1618,7 +1605,7 @@
 
         // Next level button handler
         nextLevelBtn.addEventListener('click', () => {
-            if (isEating) {
+            if (state.isEating) {
                 nextLevel();
             }
         });
@@ -1640,27 +1627,27 @@
             // Touch events
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                keys[keyCode] = true;
+                state.keys[keyCode] = true;
                 btn.style.background = 'rgba(255,255,255,0.4)';
             }, { passive: false });
 
             btn.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                keys[keyCode] = false;
+                state.keys[keyCode] = false;
                 btn.style.background = 'rgba(255,255,255,0.2)';
             }, { passive: false });
 
             // Mouse events for testing on desktop
             btn.addEventListener('mousedown', () => {
-                keys[keyCode] = true;
+                state.keys[keyCode] = true;
             });
 
             btn.addEventListener('mouseup', () => {
-                keys[keyCode] = false;
+                state.keys[keyCode] = false;
             });
 
             btn.addEventListener('mouseleave', () => {
-                keys[keyCode] = false;
+                state.keys[keyCode] = false;
             });
         });
 
